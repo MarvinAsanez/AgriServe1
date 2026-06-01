@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Base application theme. -->
+    <style name="Theme.AgriServe" parent="Theme.MaterialComponents.Light.NoActionBar">
+        <!-- Primary brand color. -->
+        <item name="colorPrimary">@color/agri_green_primary</item>
+        <item name="colorPrimaryDark">@color/agri_green_dark</item>
+        <item name="colorAccent">@color/agri_gold</item>
+
+        <!-- Status bar color. -->
+        <item name="android:statusBarColor">@color/agri_green_dark</item>
+    </style>
+
+    <style name="CircleImage">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">50%</item>
+    </style>
+</resources>

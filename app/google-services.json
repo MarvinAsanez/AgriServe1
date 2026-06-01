@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "23714483028",
+    "firebase_url": "https://agriserve-9ad30-default-rtdb.firebaseio.com",
+    "project_id": "agriserve-9ad30",
+    "storage_bucket": "agriserve-9ad30.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:23714483028:android:198484f4efd047744916c1",
+        "android_client_info": {
+          "package_name": "com.group7.agriserve"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "23714483028-g6sobka0kn0cgh72k3q8c0bpjoo9c1tt.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAyxqPj-lwvLD30II4yvx0kgEsXDqfOATo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "23714483028-g6sobka0kn0cgh72k3q8c0bpjoo9c1tt.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
