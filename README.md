@@ -73,3 +73,4 @@ Download and install the latest signed Android APK directly onto your Android de
 * **Backend**: Google Cloud Firestore, Firebase Authentication, Cloud Functions (Node.js 22)
 * **AI Engine**: Google Gen AI SDK (`gemini-1.5-flash`)
 * **Location & Maps**: Google Play Services Location & MapLibre/OSM
+
