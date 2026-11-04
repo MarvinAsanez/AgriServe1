@@ -18,7 +18,7 @@ import com.group7.agriserve.viewmodel.UserViewModel
  * Verified Dashboard Wrapper
  * Applied when farmer status == 'verified':
  * Unlocks complete access to all AgriServe services, high-level resource requests,
- * and distribution records with official DA Ragay verification attribution.
+ * and distribution records with official DA verification attribution.
  */
 @Composable
 fun VerifiedDashboardWrapper(

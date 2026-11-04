@@ -109,19 +109,26 @@ fun CredentialSubmissionScreen(
     var rsbsaNumber by remember { mutableStateOf(userViewModel.rsbsaNumber.value) }
 
     // PSGC Dynamic Address Cascade across the Philippines (Instant local fallback + live API cache)
-    val defaultRegionItem = remember {
-        AddressRepository.fallbackRegions.find { it.name.contains("Bicol", ignoreCase = true) || it.code == "050000000" }
-            ?: AddressRepository.fallbackRegions.first()
+    val defaultRegionItem = remember(userViewModel.region.value) {
+        if (userViewModel.region.value.isNotBlank()) {
+            AddressRepository.fallbackRegions.find { it.name.contains(userViewModel.region.value, ignoreCase = true) }
+        } else null
     }
-    val defaultProvinceList = remember(defaultRegionItem) { AddressRepository.getFallbackProvinces(defaultRegionItem.code) }
-    val defaultProvinceItem = remember(defaultProvinceList) {
-        defaultProvinceList.find { it.name.contains("Camarines Sur", ignoreCase = true) } ?: defaultProvinceList.firstOrNull()
+    val defaultProvinceList = remember(defaultRegionItem) {
+        if (defaultRegionItem != null) AddressRepository.getFallbackProvinces(defaultRegionItem.code) else emptyList()
+    }
+    val defaultProvinceItem = remember(defaultProvinceList, userViewModel.province.value) {
+        if (userViewModel.province.value.isNotBlank()) {
+            defaultProvinceList.find { it.name.contains(userViewModel.province.value, ignoreCase = true) }
+        } else null
     }
     val defaultCityList = remember(defaultProvinceItem) {
         if (defaultProvinceItem != null) AddressRepository.getFallbackCities(defaultProvinceItem.code) else emptyList()
     }
-    val defaultCityItem = remember(defaultCityList) {
-        defaultCityList.find { it.name.contains("Ragay", ignoreCase = true) } ?: defaultCityList.firstOrNull()
+    val defaultCityItem = remember(defaultCityList, userViewModel.city.value) {
+        if (userViewModel.city.value.isNotBlank()) {
+            defaultCityList.find { it.name.contains(userViewModel.city.value, ignoreCase = true) }
+        } else null
     }
     val defaultBarangayList = remember(defaultCityItem) {
         if (defaultCityItem != null) AddressRepository.getFallbackBarangays(defaultCityItem.code) else emptyList()
@@ -137,9 +144,9 @@ fun CredentialSubmissionScreen(
     var selectedCity by remember { mutableStateOf<LocationItem?>(defaultCityItem) }
     var selectedBarangay by remember { mutableStateOf<LocationItem?>(null) }
 
-    var regionName by remember { mutableStateOf(userViewModel.region.value.ifBlank { defaultRegionItem.name }) }
-    var provinceName by remember { mutableStateOf(userViewModel.province.value.ifBlank { defaultProvinceItem?.name ?: "Camarines Sur" }) }
-    var cityName by remember { mutableStateOf(userViewModel.city.value.ifBlank { defaultCityItem?.name ?: "Ragay" }) }
+    var regionName by remember { mutableStateOf(userViewModel.region.value) }
+    var provinceName by remember { mutableStateOf(userViewModel.province.value) }
+    var cityName by remember { mutableStateOf(userViewModel.city.value) }
     var barangayName by remember { mutableStateOf(userViewModel.barangay.value) }
     var zone by remember { mutableStateOf(userViewModel.street.value.ifBlank { "Zone 1" }) }
 
@@ -184,12 +191,12 @@ fun CredentialSubmissionScreen(
         )
         if (fetchedRegions.isNotEmpty()) {
             regions = fetchedRegions
-            val defaultRegion = fetchedRegions.find {
-                it.name.contains("Bicol", ignoreCase = true) || it.name.contains("Region V", ignoreCase = true)
-            }
-            if (defaultRegion != null && (selectedRegion == null || selectedRegion?.code == "050000000")) {
-                selectedRegion = defaultRegion
-                regionName = defaultRegion.name
+            if (regionName.isNotBlank()) {
+                val match = fetchedRegions.find { it.name.equals(regionName, ignoreCase = true) || it.name.contains(regionName, ignoreCase = true) }
+                if (match != null) {
+                    selectedRegion = match
+                    regionName = match.name
+                }
             }
         }
     }
@@ -1651,7 +1658,7 @@ fun CredentialSubmissionScreen(
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             text = "1. Information Safety: Your personal identity details, RSBSA numbers, contact numbers, and ID attachments are stored with AES-256 cloud encryption.\n\n" +
-                                   "2. Official Purpose: Collected information is used solely by the Municipal Agriculture Office (MAO) of Ragay, Camarines Sur for genuine farmer verification, disaster relief subsidies, crop insurance, and official seed/fertilizer distribution.\n\n" +
+                                   "2. Official Purpose: Collected information is used solely by the Department of Agriculture and Municipal Agriculture Office (MAO) for genuine farmer verification, disaster relief subsidies, crop insurance, and official seed/fertilizer distribution.\n\n" +
                                    "3. No Unauthorized Sharing: AgriServe will never sell, rent, or disclose your sensitive personal data to commercial third parties or external marketers.\n\n" +
                                    "4. Farmer Rights: You retain the legal right to request inspection, modification, or rectification of your submitted records at the Municipal Agriculture Office.",
                             fontSize = 12.sp,

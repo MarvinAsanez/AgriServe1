@@ -155,7 +155,7 @@ fun GuestDashboardWrapper(
             },
             text = {
                 Text(
-                    text = "Resource requests (seeds, fertilizers, equipment grants) are reserved for verified farmers registered with the DA Ragay RSBSA database.\n\nPlease update and resubmit your credentials to attain verified status.",
+                    text = "Resource requests (seeds, fertilizers, equipment grants) are reserved for verified farmers registered with the DA RSBSA database.\n\nPlease update and resubmit your credentials to attain verified status.",
                     style = MaterialTheme.typography.bodyMedium
                 )
             },

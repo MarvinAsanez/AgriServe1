@@ -29,7 +29,7 @@ import com.group7.agriserve.viewmodel.UserViewModel
 /**
  * Application Status Screen
  * Displayed while farmer status is 'pending':
- * "Application submitted. Department of Agriculture staff in Ragay are reviewing your credentials."
+ * "Application submitted. Department of Agriculture staff are reviewing your credentials."
  * Listens in real-time to Firestore and transitions immediately when reviewed.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -150,7 +150,7 @@ fun ApplicationStatusScreen(
 
             // Official Notice Message
             Text(
-                text = "Department of Agriculture staff in Ragay are reviewing your credentials.",
+                text = "Department of Agriculture staff are reviewing your credentials.",
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
@@ -235,7 +235,7 @@ fun ApplicationStatusScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            text = "MAO Ragay, Camarines Sur",
+                            text = if (userViewModel.city.value.isNotBlank()) "MAO ${userViewModel.city.value}${if (userViewModel.province.value.isNotBlank()) ", " + userViewModel.province.value else ""}" else "Municipal Agriculture Office",
                             style = MaterialTheme.typography.bodySmall,
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.primary

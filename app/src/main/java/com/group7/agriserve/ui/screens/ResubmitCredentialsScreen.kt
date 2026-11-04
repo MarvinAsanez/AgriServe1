@@ -88,9 +88,9 @@ fun ResubmitCredentialsScreen(
     var selectedCity by remember { mutableStateOf<LocationItem?>(null) }
     var selectedBarangay by remember { mutableStateOf<LocationItem?>(null) }
 
-    var regionName by remember { mutableStateOf(userViewModel.region.value.ifBlank { "Region V (Bicol Region)" }) }
-    var provinceName by remember { mutableStateOf(userViewModel.province.value.ifBlank { "Camarines Sur" }) }
-    var cityName by remember { mutableStateOf(userViewModel.city.value.ifBlank { "Ragay" }) }
+    var regionName by remember { mutableStateOf(userViewModel.region.value) }
+    var provinceName by remember { mutableStateOf(userViewModel.province.value) }
+    var cityName by remember { mutableStateOf(userViewModel.city.value) }
     var barangayName by remember { mutableStateOf(userViewModel.barangay.value) }
     var zone by remember { mutableStateOf(userViewModel.street.value.ifBlank { "Zone 1" }) }
 
@@ -104,7 +104,7 @@ fun ResubmitCredentialsScreen(
         val fetchedRegions = fetchPSGCData("https://psgc.gitlab.io/api/regions/")
         if (fetchedRegions.isNotEmpty()) {
             regions = fetchedRegions
-            val match = fetchedRegions.find { it.name.equals(regionName, ignoreCase = true) || it.name.contains("Bicol", ignoreCase = true) }
+            val match = fetchedRegions.find { it.name.equals(regionName, ignoreCase = true) }
             if (match != null) {
                 selectedRegion = match
                 regionName = match.name

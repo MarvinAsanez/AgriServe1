@@ -265,7 +265,7 @@ private fun resolveCentroidFromAddress(addressText: String, idSeed: String): Lat
         }
     }
 
-    val defaultHub = LatLng(13.8167, 122.7833) // Camarines Sur Hub
+    val defaultHub = LatLng(12.8797, 121.7740) // Philippines Central Hub
     return LatLng(defaultHub.latitude + latJitter, defaultHub.longitude + lngJitter)
 }
 

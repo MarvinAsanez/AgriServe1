@@ -177,9 +177,9 @@ fun WeatherScreen(
 
     // Farmer location states
     var registeredBarangay by remember { mutableStateOf(userViewModel?.barangay?.value ?: "") }
-    var registeredCity by remember { mutableStateOf(userViewModel?.city?.value ?: "Ragay") }
-    var registeredProvince by remember { mutableStateOf(userViewModel?.province?.value ?: "Camarines Sur") }
-    var registeredRegion by remember { mutableStateOf(userViewModel?.region?.value ?: "Region V (Bicol Region)") }
+    var registeredCity by remember { mutableStateOf(userViewModel?.city?.value ?: "") }
+    var registeredProvince by remember { mutableStateOf(userViewModel?.province?.value ?: "") }
+    var registeredRegion by remember { mutableStateOf(userViewModel?.region?.value ?: "") }
 
     // Tagged farm data
     var farmName by remember { mutableStateOf<String?>(null) }
@@ -278,13 +278,13 @@ fun WeatherScreen(
             }
             else -> { // "REGISTERED"
                 scope.launch {
-                    val cty = registeredCity.ifBlank { "Ragay" }
-                    val prv = registeredProvince.ifBlank { "Camarines Sur" }
+                    val cty = registeredCity.ifBlank { "Philippines" }
+                    val prv = registeredProvince.ifBlank { "" }
                     val brgy = registeredBarangay.ifBlank { "" }
-                    val query = if (brgy.isNotBlank()) "$brgy, $cty, $prv, Philippines" else "$cty, $prv, Philippines"
+                    val query = listOf(brgy, cty, prv, "Philippines").filter { it.isNotBlank() }.joinToString(", ")
                     val coords = resolveCoordinates(context, query, cty, prv)
-                    val dispTitle = if (brgy.isNotBlank()) "Brgy. $brgy, $cty" else cty
-                    val dispSub = "$prv, $registeredRegion"
+                    val dispTitle = if (brgy.isNotBlank() && cty.isNotBlank()) "Brgy. $brgy, $cty" else if (cty.isNotBlank()) cty else "Local Weather"
+                    val dispSub = listOf(prv, registeredRegion).filter { it.isNotBlank() }.joinToString(", ").ifBlank { "Philippines" }
                     loadWeather(coords.first, coords.second, dispTitle, dispSub)
                 }
             }
@@ -1292,7 +1292,7 @@ fun PagasaExternalLinksCard(
             )
             PagasaLinkItem(
                 title = "Southern Luzon Regional Center (SLPRSD)",
-                subtitle = "Covers Camarines Sur, Bicol Region & nearby provinces",
+                subtitle = "Covers regional forecasts across the Philippines",
                 onClick = onOpenSouthernLuzon
             )
             PagasaLinkItem(
@@ -1697,8 +1697,8 @@ fun lookupKnownCoordinates(city: String, province: String): Pair<Double, Double>
         cleanCity.contains("davao") -> Pair(7.1907, 125.4504)
         cleanCity.contains("iloilo") -> Pair(10.7202, 122.5621)
 
-        // Default to Ragay, Camarines Sur (AgriServe Central Hub)
-        else -> Pair(13.8181, 122.7917)
+        // Default to Central Philippines coordinates
+        else -> Pair(12.8797, 121.7740)
     }
 }
 

@@ -400,7 +400,7 @@ fun RequestResourceScreen(
                         val base64DataUri = "data:image/jpeg;base64," + Base64.encodeToString(imageByteArray, Base64.NO_WRAP)
 
                         fun saveApplication(imgUrl: String, offlineFlag: Boolean) {
-                            val addressFull = "${userViewModel.barangay.value.ifBlank { "Poblacion" }}, ${userViewModel.city.value.ifBlank { "Ragay" }}, ${userViewModel.province.value.ifBlank { "Camarines Sur" }}"
+                            val addressFull = listOf(userViewModel.barangay.value, userViewModel.city.value, userViewModel.province.value).filter { it.isNotBlank() }.joinToString(", ").ifBlank { "Registered Farm Address" }
                             val effectiveUserId = currentUserId.ifBlank {
                                 auth.currentUser?.uid ?: (SessionManager.getSavedUserId(context) ?: "")
                             }
@@ -520,8 +520,9 @@ fun RequestResourceScreen(
                         text = "Your request for $quantity $selectedUnit of $itemName has been registered.",
                         style = MaterialTheme.typography.bodyMedium
                     )
+                    val targetMao = if (userViewModel.city.value.isNotBlank()) " in ${userViewModel.city.value}" else ""
                     Text(
-                        text = "The Municipal Agriculture Office (MAO) in Ragay, Camarines Sur will evaluate your RSBSA credentials. You can track this application in 'Requests Status'.",
+                        text = "The Municipal Agriculture Office (MAO)$targetMao will evaluate your RSBSA credentials. You can track this application in 'Requests Status'.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -678,7 +679,7 @@ fun FarmerCredentialsCard(
             Spacer(modifier = Modifier.height(10.dp))
 
             // Registered Barangay / Farm Location
-            val addressText = "${userViewModel.barangay.value.ifBlank { "Poblacion" }}, ${userViewModel.city.value.ifBlank { "Ragay" }}, ${userViewModel.province.value.ifBlank { "Camarines Sur" }}"
+            val addressText = listOf(userViewModel.barangay.value, userViewModel.city.value, userViewModel.province.value).filter { it.isNotBlank() }.joinToString(", ").ifBlank { "Registered Farm Address" }
             OutlinedTextField(
                 value = if (!farmName.isNullOrBlank()) "$farmName • $addressText" else addressText,
                 onValueChange = {},

@@ -374,7 +374,7 @@ fun VerificationGateScreen(
                 }
                 else -> {
                     statusDialogTitle = "Application Under Review ⏳"
-                    statusDialogMessage = "Your farmer application for $email has been submitted and is currently PENDING review by DA Ragay staff.\n\n" +
+                    statusDialogMessage = "Your farmer application for $email has been submitted and is currently PENDING review by DA staff.\n\n" +
                             "Applicant: $fullName\n" +
                             "Status: Pending Verification\n\n" +
                             "You will be notified once your RSBSA and ID credentials have been reviewed."
@@ -639,7 +639,7 @@ fun VerificationGateScreen(
             )
 
             Text(
-                text = "Department of Agriculture • Ragay",
+                text = "Department of Agriculture",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -683,7 +683,7 @@ fun VerificationGateScreen(
                     Spacer(modifier = Modifier.height(10.dp))
 
                     Text(
-                        text = "To safeguard agricultural resources, incoming farmers submit their RSBSA credentials and government ID for review by DA Ragay staff.",
+                        text = "To safeguard agricultural resources, incoming farmers submit their RSBSA credentials and government ID for review by DA staff.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center,
@@ -892,9 +892,9 @@ fun VerificationGateScreen(
 
             Spacer(modifier = Modifier.height(28.dp))
 
-            // Municipal Footer
+            // Municipal / DA Footer
             Text(
-                text = "Municipality of Ragay, Camarines Sur\nOfficial Agricultural Verification Service",
+                text = "Department of Agriculture\nOfficial Agricultural Verification Service",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                 textAlign = TextAlign.Center

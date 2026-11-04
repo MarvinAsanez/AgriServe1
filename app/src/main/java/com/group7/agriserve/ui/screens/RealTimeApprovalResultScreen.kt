@@ -171,7 +171,7 @@ fun RealTimeApprovalResultScreen(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
-                    text = "Your credentials have been successfully approved by the Department of Agriculture staff in Ragay. You now have full access to agricultural services.",
+                    text = "Your credentials have been successfully approved by the Department of Agriculture staff. You now have full access to agricultural services.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
@@ -235,7 +235,7 @@ fun RealTimeApprovalResultScreen(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text("Approval Office:", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text("MAO Ragay, Camarines Sur", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold, color = Color(0xFF2E7D32))
+                            Text(if (userViewModel.city.value.isNotBlank()) "MAO ${userViewModel.city.value}" else "Department of Agriculture", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold, color = Color(0xFF2E7D32))
                         }
                     }
                 }
@@ -314,7 +314,7 @@ fun RealTimeApprovalResultScreen(
 
                 Text(
                     text = adminFeedback?.ifBlank { null }
-                        ?: "DA Staff in Ragay have reviewed your application and requested a clearer ID or updated demographic details.",
+                        ?: "DA Staff have reviewed your application and requested a clearer ID or updated demographic details.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
@@ -386,7 +386,7 @@ fun RealTimeApprovalResultScreen(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
-                    text = "Your RSBSA demographic credentials and Valid Government ID have been received and are currently queued for verification by Department of Agriculture staff in Ragay.",
+                    text = "Your RSBSA demographic credentials and Valid Government ID have been received and are currently queued for verification by Department of Agriculture staff.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,

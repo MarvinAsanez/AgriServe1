@@ -640,7 +640,7 @@ class ChatViewModel(
                 
                 Sa AgriServe *Markets (Bantay Presyo)*:
                 • Makikita ang pinakabagong farmgate prices at retail prices mula sa Department of Agriculture.
-                • Makakahanap ng mga rehistradong traders, cooperatives, at NFA buying stations sa Camarines Sur.
+                • Makakahanap ng mga rehistradong traders, cooperatives, at NFA buying stations sa inyong lalawigan at lokalidad.
                 
                 Pindutin ang button sa ibaba upang buksan ang Market Prices:
             """.trimIndent()
