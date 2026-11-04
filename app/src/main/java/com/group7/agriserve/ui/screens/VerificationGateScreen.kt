@@ -85,6 +85,7 @@ fun VerificationGateScreen(
     // Google OTP verification modal state
     var pendingGoogleEmail by remember { mutableStateOf("") }
     var showGoogleOtpDialog by remember { mutableStateOf(false) }
+    var showFacebookNoticeDialog by remember { mutableStateOf(false) }
 
     // Application Status result modal state (Only inspects approval status, NEVER directs to homescreen)
     var showStatusResultDialog by remember { mutableStateOf(false) }
@@ -532,44 +533,7 @@ fun VerificationGateScreen(
             Toast.makeText(context, "Internet connection required to authenticate.", Toast.LENGTH_SHORT).show()
             return
         }
-
-        val activity = context.findActivity()
-        if (activity == null) {
-            Toast.makeText(context, "Unable to find parent activity.", Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        isLoading = true
-        errorMessage = null
-
-        val provider = OAuthProvider.newBuilder("facebook.com")
-        provider.setScopes(listOf("email", "public_profile"))
-
-        val pendingResultTask = auth.pendingAuthResult
-        if (pendingResultTask != null) {
-            pendingResultTask
-                .addOnSuccessListener { authResult ->
-                    val user = authResult.user
-                    val resolvedEmail = user?.email ?: "${user?.uid}@agriserve.local"
-                    lookupAndBindGoogleAccount(resolvedEmail)
-                }
-                .addOnFailureListener { e ->
-                    isLoading = false
-                    errorMessage = "Facebook Sign-In failed: ${e.message}"
-                }
-            return
-        }
-
-        auth.startActivityForSignInWithProvider(activity, provider.build())
-            .addOnSuccessListener { authResult ->
-                val user = authResult.user
-                val resolvedEmail = user?.email ?: "${user?.uid}@agriserve.local"
-                lookupAndBindGoogleAccount(resolvedEmail)
-            }
-            .addOnFailureListener { e ->
-                isLoading = false
-                errorMessage = "Facebook Sign-In failed: ${e.message}"
-            }
+        showFacebookNoticeDialog = true
     }
 
     Box(
@@ -1140,6 +1104,47 @@ fun VerificationGateScreen(
                 dismissButton = {
                     TextButton(onClick = { showGoogleAccountDialog = false }) {
                         Text("Cancel")
+                    }
+                }
+            )
+        }
+
+        // Facebook Setup Notice Dialog
+        if (showFacebookNoticeDialog) {
+            AlertDialog(
+                onDismissRequest = { showFacebookNoticeDialog = false },
+                icon = {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_facebook),
+                        contentDescription = null,
+                        modifier = Modifier.size(36.dp),
+                        tint = Color(0xFF1877F2)
+                    )
+                },
+                title = {
+                    Text("Facebook Sign-In Notice", fontWeight = FontWeight.Bold, fontSize = 18.sp, textAlign = TextAlign.Center)
+                },
+                text = {
+                    Text(
+                        text = "Facebook authentication via Firebase requires a registered Meta Developer App ID and Secret configured in the Firebase Console.\n\nIn the meantime, you can authenticate instantly using 'Continue with Google' or your Email & Password.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        lineHeight = 20.sp
+                    )
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            showFacebookNoticeDialog = false
+                            signInWithGoogle()
+                        }
+                    ) {
+                        Text("Continue with Google", fontWeight = FontWeight.Bold)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showFacebookNoticeDialog = false }) {
+                        Text("Close")
                     }
                 }
             )

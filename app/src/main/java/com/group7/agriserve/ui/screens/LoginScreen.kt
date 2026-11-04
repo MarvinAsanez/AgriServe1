@@ -219,28 +219,18 @@ fun LoginScreen(
                     return@setOnClickListener
                 }
 
-                val provider = OAuthProvider.newBuilder("facebook.com")
-                provider.setScopes(listOf("email", "public_profile"))
-
-                val pendingResultTask = auth.pendingAuthResult
-                if (pendingResultTask != null) {
-                    pendingResultTask
-                        .addOnSuccessListener { authResult ->
-                            handleSuccessfulAuth(authResult.user)
-                        }
-                        .addOnFailureListener { e ->
-                            Toast.makeText(context, "Facebook Sign-In failed: ${e.message}", Toast.LENGTH_LONG).show()
-                        }
-                    return@setOnClickListener
-                }
-
-                auth.startActivityForSignInWithProvider(activity, provider.build())
-                    .addOnSuccessListener { authResult ->
-                        handleSuccessfulAuth(authResult.user)
+                // Show setup notice dialog explaining Meta App ID requirement for Facebook Auth
+                com.google.android.material.dialog.MaterialAlertDialogBuilder(activity)
+                    .setTitle("Facebook Sign-In Notice")
+                    .setMessage(
+                        "Facebook authentication via Firebase requires a registered Meta Developer App ID and Secret configured in the Firebase Console.\n\n" +
+                        "In the meantime, you can sign in instantly using 'Continue with Google' or your Email & Password."
+                    )
+                    .setPositiveButton("Continue with Google") { _, _ ->
+                        binding.btnGoogleLogin.performClick()
                     }
-                    .addOnFailureListener { e ->
-                        Toast.makeText(context, "Facebook Sign-In failed: ${e.message}", Toast.LENGTH_LONG).show()
-                    }
+                    .setNegativeButton("Close", null)
+                    .show()
             }
 
             // Handle Signup / Submit Credentials Button Click
