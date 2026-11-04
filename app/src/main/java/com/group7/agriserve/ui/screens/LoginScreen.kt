@@ -180,12 +180,28 @@ fun LoginScreen(
                                     }
                                 }
                         } else {
-                            Toast.makeText(context, "Unrecognized credential type received.", Toast.LENGTH_SHORT).show()
+                            // Direct Firebase Auth Google OAuthProvider fallback
+                            val googleProvider = OAuthProvider.newBuilder("google.com")
+                            auth.startActivityForSignInWithProvider(activity, googleProvider.build())
+                                .addOnSuccessListener { authResult ->
+                                    handleSuccessfulAuth(authResult.user)
+                                }
+                                .addOnFailureListener { err ->
+                                    Toast.makeText(context, "Google Sign-In failed: ${err.message}", Toast.LENGTH_LONG).show()
+                                }
                         }
                     } catch (e: GetCredentialCancellationException) {
                         // User dismissed the chooser dialog
                     } catch (e: Exception) {
-                        Toast.makeText(context, "Google Sign-In: ${e.message}", Toast.LENGTH_LONG).show()
+                        // Direct Firebase Auth Google OAuthProvider fallback
+                        val googleProvider = OAuthProvider.newBuilder("google.com")
+                        auth.startActivityForSignInWithProvider(activity, googleProvider.build())
+                            .addOnSuccessListener { authResult ->
+                                handleSuccessfulAuth(authResult.user)
+                            }
+                            .addOnFailureListener { err ->
+                                Toast.makeText(context, "Google Sign-In failed: ${err.message}", Toast.LENGTH_LONG).show()
+                            }
                     }
                 }
             }

@@ -42,6 +42,9 @@ import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
+import com.google.firebase.auth.OAuthProvider
+import androidx.compose.ui.res.painterResource
+import com.group7.agriserve.R
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
 import com.group7.agriserve.util.NetworkUtils
@@ -406,7 +409,7 @@ fun VerificationGateScreen(
         if (result.resultCode == Activity.RESULT_OK && result.data != null) {
             val selectedEmail = result.data?.getStringExtra(AccountManager.KEY_ACCOUNT_NAME)
             if (!selectedEmail.isNullOrBlank()) {
-                startGoogleOtpVerification(selectedEmail)
+                lookupAndBindGoogleAccount(selectedEmail)
             }
         }
     }
@@ -443,7 +446,7 @@ fun VerificationGateScreen(
         return null
     }
 
-    // Google Sign-In with Credential Manager and seamless Account Picker fallback
+    // Google Sign-In with Firebase Authentication
     fun signInWithGoogle() {
         if (!NetworkUtils.isOnline(context)) {
             Toast.makeText(context, "Internet connection required to authenticate.", Toast.LENGTH_SHORT).show()
@@ -483,21 +486,90 @@ fun VerificationGateScreen(
 
                     auth.signInWithCredential(authCredential)
                         .addOnCompleteListener { task ->
-                            val user = auth.currentUser
-                            val resolvedEmail = user?.email ?: googleEmail
-                            startGoogleOtpVerification(resolvedEmail)
+                            if (task.isSuccessful) {
+                                val user = auth.currentUser
+                                val resolvedEmail = user?.email ?: googleEmail
+                                lookupAndBindGoogleAccount(resolvedEmail)
+                            } else {
+                                isLoading = false
+                                errorMessage = "Google Sign-In failed: ${task.exception?.message}"
+                            }
                         }
                 } else {
-                    launchGoogleAccountPicker()
+                    // Firebase Auth OAuthProvider fallback
+                    val googleProvider = OAuthProvider.newBuilder("google.com")
+                    auth.startActivityForSignInWithProvider(activity, googleProvider.build())
+                        .addOnSuccessListener { authResult ->
+                            val user = authResult.user
+                            val resolvedEmail = user?.email ?: "${user?.uid}@agriserve.local"
+                            lookupAndBindGoogleAccount(resolvedEmail)
+                        }
+                        .addOnFailureListener {
+                            launchGoogleAccountPicker()
+                        }
                 }
             } catch (e: GetCredentialCancellationException) {
                 isLoading = false
-                // User dismissed chooser dialog
             } catch (e: Exception) {
-                Log.w("VerificationGate", "CredentialManager fallback to Account Chooser: ${e.message}")
-                launchGoogleAccountPicker()
+                // Direct Firebase Auth OAuthProvider fallback
+                val googleProvider = OAuthProvider.newBuilder("google.com")
+                auth.startActivityForSignInWithProvider(activity, googleProvider.build())
+                    .addOnSuccessListener { authResult ->
+                        val user = authResult.user
+                        val resolvedEmail = user?.email ?: "${user?.uid}@agriserve.local"
+                        lookupAndBindGoogleAccount(resolvedEmail)
+                    }
+                    .addOnFailureListener {
+                        launchGoogleAccountPicker()
+                    }
             }
         }
+    }
+
+    // Facebook Sign-In with Firebase Authentication
+    fun signInWithFacebook() {
+        if (!NetworkUtils.isOnline(context)) {
+            Toast.makeText(context, "Internet connection required to authenticate.", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val activity = context.findActivity()
+        if (activity == null) {
+            Toast.makeText(context, "Unable to find parent activity.", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        isLoading = true
+        errorMessage = null
+
+        val provider = OAuthProvider.newBuilder("facebook.com")
+        provider.setScopes(listOf("email", "public_profile"))
+
+        val pendingResultTask = auth.pendingAuthResult
+        if (pendingResultTask != null) {
+            pendingResultTask
+                .addOnSuccessListener { authResult ->
+                    val user = authResult.user
+                    val resolvedEmail = user?.email ?: "${user?.uid}@agriserve.local"
+                    lookupAndBindGoogleAccount(resolvedEmail)
+                }
+                .addOnFailureListener { e ->
+                    isLoading = false
+                    errorMessage = "Facebook Sign-In failed: ${e.message}"
+                }
+            return
+        }
+
+        auth.startActivityForSignInWithProvider(activity, provider.build())
+            .addOnSuccessListener { authResult ->
+                val user = authResult.user
+                val resolvedEmail = user?.email ?: "${user?.uid}@agriserve.local"
+                lookupAndBindGoogleAccount(resolvedEmail)
+            }
+            .addOnFailureListener { e ->
+                isLoading = false
+                errorMessage = "Facebook Sign-In failed: ${e.message}"
+            }
     }
 
     Box(
@@ -640,15 +712,53 @@ fun VerificationGateScreen(
                     )
                 } else {
                     Icon(
-                        imageVector = Icons.Default.AccountCircle,
+                        painter = painterResource(id = R.drawable.ic_google),
                         contentDescription = null,
-                        modifier = Modifier.size(22.dp)
+                        modifier = Modifier.size(22.dp),
+                        tint = Color.Unspecified
                     )
                     Spacer(modifier = Modifier.width(10.dp))
                     Text(
-                        text = "Continue with Google Account",
+                        text = "Continue with Google",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // PRIMARY ACTION: Continue with Facebook
+            Button(
+                onClick = { signInWithFacebook() },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(54.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF1877F2)
+                ),
+                enabled = !isLoading
+            ) {
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = Color.White,
+                        strokeWidth = 2.5.dp
+                    )
+                } else {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_facebook),
+                        contentDescription = null,
+                        modifier = Modifier.size(22.dp),
+                        tint = Color.White
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        text = "Continue with Facebook",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
                     )
                 }
             }
