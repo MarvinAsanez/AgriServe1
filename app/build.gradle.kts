@@ -60,6 +60,7 @@ dependencies {
     implementation(libs.androidx.credentials.play.services.auth)
     implementation(libs.googleid)
     implementation(libs.firebase.messaging)
+    implementation(libs.facebook.login)
     
     // Coil for Image Loading
     implementation(libs.coil.compose)

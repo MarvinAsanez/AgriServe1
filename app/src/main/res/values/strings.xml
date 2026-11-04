@@ -151,4 +151,9 @@
     <string name="emergency_precaution_hint">Tap to read emergency farm precautions &amp; hotlines</string>
     <string name="da_advisories_updates">DA Advisories &amp; Updates</string>
     <string name="close_advisory">Close Advisory</string>
+
+    <!-- Facebook Login Credentials -->
+    <string name="facebook_app_id">1676034210800919</string>
+    <string name="facebook_client_token">108b82c96f065930e0fc26316a1843d5</string>
+    <string name="fb_login_protocol_scheme">fb1676034210800919</string>
 </resources>

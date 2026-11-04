@@ -42,7 +42,13 @@ import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
+import com.google.firebase.auth.FacebookAuthProvider
 import com.google.firebase.auth.OAuthProvider
+import com.facebook.CallbackManager
+import com.facebook.FacebookCallback
+import com.facebook.FacebookException
+import com.facebook.login.LoginManager
+import com.facebook.login.LoginResult
 import androidx.compose.ui.res.painterResource
 import com.group7.agriserve.R
 import com.google.firebase.firestore.DocumentSnapshot
@@ -85,7 +91,6 @@ fun VerificationGateScreen(
     // Google OTP verification modal state
     var pendingGoogleEmail by remember { mutableStateOf("") }
     var showGoogleOtpDialog by remember { mutableStateOf(false) }
-    var showFacebookNoticeDialog by remember { mutableStateOf(false) }
 
     // Application Status result modal state (Only inspects approval status, NEVER directs to homescreen)
     var showStatusResultDialog by remember { mutableStateOf(false) }
@@ -255,6 +260,49 @@ fun VerificationGateScreen(
                     )
                     doFirestoreLookup(uid)
                 }
+        }
+    }
+
+    // Modern Facebook Activity Result Contract & Callback
+    val callbackManager = remember { CallbackManager.Factory.create() }
+
+    val facebookLauncher = rememberLauncherForActivityResult(
+        contract = LoginManager.getInstance().createLogInActivityResultContract(callbackManager, null)
+    ) {
+        // Handled via callbackManager
+    }
+
+    DisposableEffect(Unit) {
+        LoginManager.getInstance().registerCallback(
+            callbackManager,
+            object : FacebookCallback<LoginResult> {
+                override fun onSuccess(result: LoginResult) {
+                    val credential = FacebookAuthProvider.getCredential(result.accessToken.token)
+                    auth.signInWithCredential(credential)
+                        .addOnCompleteListener { task ->
+                            if (task.isSuccessful) {
+                                val user = auth.currentUser
+                                val resolvedEmail = user?.email ?: "${user?.uid}@agriserve.local"
+                                lookupAndBindGoogleAccount(resolvedEmail)
+                            } else {
+                                isLoading = false
+                                errorMessage = "Facebook Sign-In failed: ${task.exception?.message}"
+                            }
+                        }
+                }
+
+                override fun onCancel() {
+                    isLoading = false
+                }
+
+                override fun onError(error: FacebookException) {
+                    isLoading = false
+                    errorMessage = "Facebook error: ${error.message}"
+                }
+            }
+        )
+        onDispose {
+            LoginManager.getInstance().unregisterCallback(callbackManager)
         }
     }
 
@@ -527,13 +575,20 @@ fun VerificationGateScreen(
         }
     }
 
-    // Facebook Sign-In with Firebase Authentication
+    // Facebook Sign-In with Facebook SDK and Firebase Authentication
     fun signInWithFacebook() {
         if (!NetworkUtils.isOnline(context)) {
             Toast.makeText(context, "Internet connection required to authenticate.", Toast.LENGTH_SHORT).show()
             return
         }
-        showFacebookNoticeDialog = true
+        try {
+            isLoading = true
+            errorMessage = null
+            facebookLauncher.launch(listOf("email", "public_profile"))
+        } catch (e: Exception) {
+            isLoading = false
+            errorMessage = "Facebook launch error: ${e.message}"
+        }
     }
 
     Box(
@@ -1104,47 +1159,6 @@ fun VerificationGateScreen(
                 dismissButton = {
                     TextButton(onClick = { showGoogleAccountDialog = false }) {
                         Text("Cancel")
-                    }
-                }
-            )
-        }
-
-        // Facebook Setup Notice Dialog
-        if (showFacebookNoticeDialog) {
-            AlertDialog(
-                onDismissRequest = { showFacebookNoticeDialog = false },
-                icon = {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_facebook),
-                        contentDescription = null,
-                        modifier = Modifier.size(36.dp),
-                        tint = Color(0xFF1877F2)
-                    )
-                },
-                title = {
-                    Text("Facebook Sign-In Notice", fontWeight = FontWeight.Bold, fontSize = 18.sp, textAlign = TextAlign.Center)
-                },
-                text = {
-                    Text(
-                        text = "Facebook authentication via Firebase requires a registered Meta Developer App ID and Secret configured in the Firebase Console.\n\nIn the meantime, you can authenticate instantly using 'Continue with Google' or your Email & Password.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        lineHeight = 20.sp
-                    )
-                },
-                confirmButton = {
-                    Button(
-                        onClick = {
-                            showFacebookNoticeDialog = false
-                            signInWithGoogle()
-                        }
-                    ) {
-                        Text("Continue with Google", fontWeight = FontWeight.Bold)
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = { showFacebookNoticeDialog = false }) {
-                        Text("Close")
                     }
                 }
             )
