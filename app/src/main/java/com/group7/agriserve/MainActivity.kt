@@ -12,6 +12,7 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Inventory
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Report
+import androidx.activity.compose.BackHandler
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -132,6 +133,17 @@ fun AgriServeApp(userViewModel: UserViewModel) {
         currentDestination?.hierarchy?.any { it.route == screen.route } == true 
     }
 
+    // When on any secondary dashboard tab (e.g. Profile, Inventory, Request, Report), system back returns to Home
+    val isNotOnHomeScreen = currentDestination?.route != null && 
+        currentDestination?.route != Screen.Home.route && 
+        showBottomBar
+    BackHandler(enabled = isNotOnHomeScreen) {
+        navController.navigate(Screen.Home.route) {
+            popUpTo(Screen.Home.route) { inclusive = false }
+            launchSingleTop = true
+        }
+    }
+
     Scaffold(
         bottomBar = {
             if (showBottomBar) {
@@ -169,12 +181,19 @@ fun AgriServeApp(userViewModel: UserViewModel) {
                             alwaysShowLabel = true,
                             selected = selected,
                             onClick = {
-                                navController.navigate(screen.route) {
-                                    popUpTo(navController.graph.findStartDestination().id) {
-                                        saveState = true
+                                if (screen == Screen.Home) {
+                                    navController.navigate(Screen.Home.route) {
+                                        popUpTo(Screen.Home.route) { inclusive = false }
+                                        launchSingleTop = true
                                     }
-                                    launchSingleTop = true
-                                    restoreState = true
+                                } else {
+                                    navController.navigate(screen.route) {
+                                        popUpTo(Screen.Home.route) {
+                                            saveState = true
+                                        }
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
                                 }
                             }
                         )
@@ -409,6 +428,12 @@ fun AgriServeApp(userViewModel: UserViewModel) {
                 composable(Screen.Profile.route) {
                     ProfileScreen(
                         userViewModel = userViewModel,
+                        onBackClick = {
+                            navController.navigate(Screen.Home.route) {
+                                popUpTo(Screen.Home.route) { inclusive = false }
+                                launchSingleTop = true
+                            }
+                        },
                         onEditProfileClick = { navController.navigate(Screen.EditProfile.route) },
                         onSupportClick = { navController.navigate(Screen.Support.route) },
                         onFeedbackClick = { navController.navigate(Screen.Feedback.route) },

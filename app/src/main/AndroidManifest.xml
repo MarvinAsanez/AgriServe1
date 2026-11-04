@@ -52,7 +52,7 @@
             android:exported="true"
             android:label="@string/app_name"
             android:theme="@style/Theme.AgriServe"
-            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize">
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|locale|layoutDirection">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
