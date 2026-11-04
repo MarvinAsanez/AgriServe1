@@ -1,9 +1,10 @@
 package com.group7.agriserve
 
 import android.os.Bundle
-import androidx.activity.ComponentActivity
+import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddCircle
@@ -20,75 +21,99 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.core.os.LocaleListCompat
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.navigation
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import androidx.navigation.NavType
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
 import com.google.firebase.auth.FirebaseAuth
+import com.group7.agriserve.util.SessionManager
 import com.group7.agriserve.ui.navigation.Screen
-import com.group7.agriserve.ui.screens.AccountVerificationScreen
-import com.group7.agriserve.ui.screens.AdminDashboardScreen
-import com.group7.agriserve.ui.screens.CommunityScreen
-import com.group7.agriserve.ui.screens.EditProfileScreen
-import com.group7.agriserve.ui.screens.FarmTaggingScreen
-import com.group7.agriserve.ui.screens.FarmerStatusScreen
-import com.group7.agriserve.ui.screens.HomeScreen
-import com.group7.agriserve.ui.screens.InventoryScreen
-import com.group7.agriserve.ui.screens.LoginScreen
-import com.group7.agriserve.ui.screens.MarketsScreen
-import com.group7.agriserve.ui.screens.PendingApprovalScreen
-import com.group7.agriserve.ui.screens.ProfileScreen
-import com.group7.agriserve.ui.screens.ReportIssueScreen
-import com.group7.agriserve.ui.screens.RequestResourceScreen
-import com.group7.agriserve.ui.screens.SecurityScreen
-import com.group7.agriserve.ui.screens.SignupScreen
-import com.group7.agriserve.ui.screens.SupportScreen
-import com.group7.agriserve.ui.screens.WeatherScreen
+import com.group7.agriserve.ui.screens.*
 import com.group7.agriserve.ui.theme.AgriServeTheme
 import com.group7.agriserve.viewmodel.UserViewModel
 
-class MainActivity : ComponentActivity() {
+class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // Enable Firebase Firestore Offline Persistence
+        try {
+            val settings = com.google.firebase.firestore.FirebaseFirestoreSettings.Builder()
+                .setPersistenceEnabled(true)
+                .setCacheSizeBytes(com.google.firebase.firestore.FirebaseFirestoreSettings.CACHE_SIZE_UNLIMITED)
+                .build()
+            com.google.firebase.firestore.FirebaseFirestore.getInstance().firestoreSettings = settings
+        } catch (e: Exception) {
+            // Firestore settings already locked/initialized
+        }
+
+        // Synchronously load cached user profile and session BEFORE composing UI to prevent cold-start route bouncing
+        val userViewModel: UserViewModel = ViewModelProvider(this)[UserViewModel::class.java]
+        userViewModel.loadCachedSession(this)
+        userViewModel.fetchUserProfile(this)
+
         enableEdgeToEdge()
         setContent {
-            AgriServeTheme {
-                AgriServeApp()
+            val themeMode by userViewModel.themeMode
+            
+            AgriServeTheme(themeMode = themeMode) {
+                AgriServeApp(userViewModel)
             }
         }
     }
 }
 
 @Composable
-fun AgriServeApp() {
+fun AgriServeApp(userViewModel: UserViewModel) {
+    val context = LocalContext.current
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
-    val userViewModel: UserViewModel = viewModel()
     
+    val farmerStatus by userViewModel.farmerStatus
     val isVerified by userViewModel.isVerified
     val role by userViewModel.role
     val farmerName by userViewModel.farmerName
     val accountStatus by userViewModel.accountStatus
+    val selectedLanguage by userViewModel.selectedLanguage
     val currentUser = FirebaseAuth.getInstance().currentUser
+    val isSessionValid = remember { SessionManager.isSessionValid(context) }
 
-    // Redirection logic: If logged in as User but not verified, force them to the PendingApprovalScreen
-    LaunchedEffect(currentUser, isVerified, farmerName, role, accountStatus) {
-        if (currentUser != null && farmerName != "Loading..." && !isVerified && role == "User") {
-            val currentRoute = currentDestination?.route
-            if (currentRoute != "pending_approval" && 
-                currentRoute != Screen.Login.route &&
-                currentRoute != "auth" &&
-                currentRoute != "signup_flow" &&
-                currentRoute != Screen.Signup.route &&
-                currentRoute != "account_verification"
-            ) {
-                navController.navigate("pending_approval") {
-                    popUpTo("main") { inclusive = true }
+    // Instant local cache load for offline cold-start
+    LaunchedEffect(Unit) {
+        userViewModel.loadCachedSession(context)
+        userViewModel.fetchUserProfile(context)
+    }
+
+    // Apply language changes to app's locale safely without recreation loops
+    LaunchedEffect(selectedLanguage) {
+        if (selectedLanguage.isNotBlank()) {
+            val currentLocales = AppCompatDelegate.getApplicationLocales()
+            val currentTag = currentLocales.get(0)?.language ?: ""
+            val normCurrent = when (currentTag) { "tl" -> "fil"; "bik" -> "bcl"; else -> currentTag }
+            val targetTag = when (selectedLanguage) { "tl" -> "fil"; "bik" -> "bcl"; else -> selectedLanguage }
+            
+            if (normCurrent.isNotBlank() && normCurrent != targetTag) {
+                val appLocale = LocaleListCompat.forLanguageTags(targetTag)
+                AppCompatDelegate.setApplicationLocales(appLocale)
+            } else if (normCurrent.isBlank()) {
+                val systemDefault = java.util.Locale.getDefault().language
+                val normSystem = if (systemDefault == "tl") "fil" else systemDefault
+                if (normSystem != targetTag) {
+                    val appLocale = LocaleListCompat.forLanguageTags(targetTag)
+                    AppCompatDelegate.setApplicationLocales(appLocale)
                 }
             }
         }
@@ -102,10 +127,10 @@ fun AgriServeApp() {
         Screen.Profile
     )
 
-    // Only show bottom bar if on a main screen AND the user is either verified OR an admin
+    // Show bottom bar if on one of the main dashboard destinations
     val showBottomBar = mainScreens.any { screen -> 
         currentDestination?.hierarchy?.any { it.route == screen.route } == true 
-    } && (isVerified || role == "Admin")
+    }
 
     Scaffold(
         bottomBar = {
@@ -127,7 +152,21 @@ fun AgriServeApp() {
                                     contentDescription = screen.route 
                                 ) 
                             },
-                            label = { Text(screen.route.replaceFirstChar { it.uppercase() }) },
+                            label = {
+                                Text(
+                                    when(screen) {
+                                        Screen.Home -> stringResource(R.string.home)
+                                        Screen.Inventory -> stringResource(R.string.inventory)
+                                        Screen.Request -> stringResource(R.string.request)
+                                        Screen.Report -> stringResource(R.string.report_incident)
+                                        Screen.Profile -> stringResource(R.string.profile)
+                                        else -> screen.route
+                                    },
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                ) 
+                            },
+                            alwaysShowLabel = true,
                             selected = selected,
                             onClick = {
                                 navController.navigate(screen.route) {
@@ -144,65 +183,182 @@ fun AgriServeApp() {
             }
         }
     ) { innerPadding ->
-        NavHost(
-            navController = navController,
-            startDestination = "auth",
-            modifier = Modifier.padding(innerPadding)
-        ) {
-            navigation(startDestination = Screen.Login.route, route = "auth") {
-                composable(Screen.Login.route) {
-                    LoginScreen(
-                        onLoginClick = { 
-                            userViewModel.fetchUserProfile()
-                            navController.navigate("main") {
-                                popUpTo("auth") { inclusive = true }
-                            }
-                        },
-                        onSignupClick = { navController.navigate(Screen.Signup.route) }
-                    )
-                }
-                navigation(startDestination = Screen.Signup.route, route = "signup_flow") {
-                    composable(Screen.Signup.route) {
-                        SignupScreen(
-                            onSignupComplete = { 
-                                navController.navigate(Screen.Login.route) {
-                                    popUpTo("signup_flow") { inclusive = true }
-                                }
-                            },
-                            onBackToLogin = { navController.popBackStack() }
-                        )
-                    }
+        val startDestinationRoute = remember {
+            if (!SessionManager.isSessionValid(context)) {
+                Screen.VerificationGate.route
+            } else {
+                val cachedStatus = SessionManager.getCachedFarmerStatus(context)
+                when (cachedStatus) {
+                    "pending" -> Screen.ApplicationStatus.route
+                    "not_submitted" -> Screen.VerificationGate.route
+                    else -> "main"
                 }
             }
+        }
 
-            composable("pending_approval") {
-                PendingApprovalScreen(
-                    status = accountStatus,
-                    onApprovalDetected = {
-                        navController.navigate("main") {
-                            popUpTo("pending_approval") { inclusive = true }
+        NavHost(
+            navController = navController,
+            startDestination = startDestinationRoute,
+            modifier = Modifier.padding(innerPadding)
+        ) {
+            // 1. Entry / Verification Gate Screen (Replaces old Login/Registration)
+            composable(Screen.VerificationGate.route) {
+                VerificationGateScreen(
+                    userViewModel = userViewModel,
+                    onNavigateToSubmission = {
+                        navController.navigate(Screen.CredentialSubmission.route)
+                    },
+                    onNavigateToStatus = {
+                        navController.navigate(Screen.ApplicationStatus.route) {
+                            popUpTo(Screen.VerificationGate.route) { inclusive = true }
                         }
                     },
+                    onNavigateToGuest = {
+                        navController.navigate("main") {
+                            popUpTo(Screen.VerificationGate.route) { inclusive = true }
+                        }
+                    },
+                    onNavigateToLogin = {
+                        navController.navigate(Screen.Login.route)
+                    },
+                    onNavigateToVerified = {
+                        navController.navigate("main") {
+                            popUpTo(Screen.VerificationGate.route) { inclusive = true }
+                        }
+                    }
+                )
+            }
+
+            // 0. Login Screen (Email/Password Login)
+            composable(Screen.Login.route) {
+                LoginScreen(
+                    userViewModel = userViewModel,
+                    onLoginClick = {
+                        navController.navigate("main") {
+                            popUpTo(Screen.VerificationGate.route) { inclusive = true }
+                        }
+                    },
+                    onSignupClick = {
+                        navController.navigate(Screen.CredentialSubmission.route)
+                    }
+                )
+            }
+
+            // 2. Onboarding / Credential Submission Screen
+            composable(Screen.CredentialSubmission.route) {
+                CredentialSubmissionScreen(
+                    userViewModel = userViewModel,
+                    onSubmissionSuccess = {
+                        navController.navigate(Screen.ApplicationStatus.route) {
+                            popUpTo(Screen.CredentialSubmission.route) { inclusive = true }
+                        }
+                    },
+                    onNavigateToHome = {
+                        navController.navigate("main") {
+                            popUpTo(Screen.CredentialSubmission.route) { inclusive = true }
+                        }
+                    },
+                    onBack = { navController.popBackStack() }
+                )
+            }
+
+            // 3. Application Status Screen (Pending DA Review)
+            composable(Screen.ApplicationStatus.route) {
+                ApplicationStatusScreen(
+                    userViewModel = userViewModel,
+                    onApprovedVerified = {
+                        navController.navigate("main") {
+                            popUpTo(Screen.ApplicationStatus.route) { inclusive = true }
+                        }
+                    },
+                    onApprovedGuest = {
+                        navController.navigate("main") {
+                            popUpTo(Screen.ApplicationStatus.route) { inclusive = true }
+                        }
+                    },
+                    onCheckApproval = {
+                        navController.navigate(Screen.RealTimeApprovalResult.route)
+                    },
                     onLogout = {
-                        FirebaseAuth.getInstance().signOut()
-                        navController.navigate("auth") {
+                        userViewModel.logout(context)
+                        navController.navigate(Screen.VerificationGate.route) {
                             popUpTo(0) { inclusive = true }
                         }
                     }
                 )
             }
 
+            // 3b. Real-Time Approval Result Screen
+            composable(Screen.RealTimeApprovalResult.route) {
+                RealTimeApprovalResultScreen(
+                    userViewModel = userViewModel,
+                    onProceedToLogin = {
+                        navController.navigate("main") {
+                            popUpTo(Screen.ApplicationStatus.route) { inclusive = true }
+                        }
+                    },
+                    onResubmit = {
+                        navController.navigate(Screen.ResubmitCredentials.route)
+                    },
+                    onBack = { navController.popBackStack() },
+                    onLogout = {
+                        userViewModel.logout(context)
+                        navController.navigate(Screen.VerificationGate.route) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    }
+                )
+            }
+
+            // 4. Resubmit Credentials Screen (Guest correction flow)
+            composable(Screen.ResubmitCredentials.route) {
+                ResubmitCredentialsScreen(
+                    userViewModel = userViewModel,
+                    onResubmissionSuccess = {
+                        navController.navigate(Screen.ApplicationStatus.route) {
+                            popUpTo(Screen.ResubmitCredentials.route) { inclusive = true }
+                        }
+                    },
+                    onBack = { navController.popBackStack() }
+                )
+            }
+
+            // 5. Main Dashboard Graph (Wrapped conditionally for Guest or Verified)
             navigation(startDestination = Screen.Home.route, route = "main") {
                 composable(Screen.Home.route) {
-                    HomeScreen(
-                        onInventoryClick = { navController.navigate(Screen.Inventory.route) },
-                        onWeatherClick = { navController.navigate(Screen.Weather.route) },
-                        onMarketsClick = { navController.navigate(Screen.Markets.route) },
-                        onCommunityClick = { navController.navigate(Screen.Community.route) },
-                        onStatusClick = { navController.navigate(Screen.Status.route) },
-                        onFarmTaggingClick = { navController.navigate(Screen.FarmTagging.route) }
-                    )
+                    val homeContent: @Composable () -> Unit = {
+                        HomeScreen(
+                            userViewModel = userViewModel,
+                            onInventoryClick = { navController.navigate(Screen.Inventory.route) },
+                            onWeatherClick = { navController.navigate(Screen.Weather.route) },
+                            onMarketsClick = { navController.navigate(Screen.Markets.route) },
+                            onCommunityClick = { navController.navigate(Screen.Community.route) },
+                            onStatusClick = { navController.navigate(Screen.Status.route) },
+                            onStatusFilterClick = { filter -> navController.navigate(Screen.Status.route + "?filter=$filter") },
+                            onFarmTaggingClick = { navController.navigate(Screen.FarmTagging.route) },
+                            onAllFarmsMapClick = { navController.navigate(Screen.AllFarmsMap.route) },
+                            onFeedbackClick = { navController.navigate(Screen.Feedback.route) },
+                            onSupportClick = { navController.navigate(Screen.Support.route) },
+                            onAiChatClick = { navController.navigate(Screen.AiChat.route) }
+                        )
+                    }
+
+                    if (farmerStatus == "guest" || (!isVerified && role != "Admin")) {
+                        GuestDashboardWrapper(
+                            userViewModel = userViewModel,
+                            onResubmitClick = { navController.navigate(Screen.ResubmitCredentials.route) },
+                            content = homeContent
+                        )
+                    } else if (farmerStatus == "verified" || isVerified) {
+                        VerifiedDashboardWrapper(
+                            userViewModel = userViewModel,
+                            content = homeContent
+                        )
+                    } else {
+                        homeContent()
+                    }
                 }
+
                 composable(Screen.Inventory.route) {
                     InventoryScreen(
                         onBack = { navController.popBackStack() },
@@ -211,81 +367,170 @@ fun AgriServeApp() {
                         }
                     )
                 }
+
+                composable(Screen.Request.route) {
+                    if ((farmerStatus == "guest" || !isVerified) && role != "Admin") {
+                        UnverifiedFarmerGate(
+                            onVerifyClick = { navController.navigate(Screen.ResubmitCredentials.route) },
+                            onBack = { navController.popBackStack() }
+                        )
+                    } else {
+                        RequestResourceScreen(
+                            onBack = { navController.popBackStack() },
+                            userViewModel = userViewModel,
+                            preSelectedType = ""
+                        )
+                    }
+                }
+
                 composable(Screen.Request.route + "?itemName={itemName}") { backStackEntry ->
                     val itemName = backStackEntry.arguments?.getString("itemName") ?: ""
-                    RequestResourceScreen(
-                        onBack = { navController.popBackStack() },
-                        userViewModel = userViewModel,
-                        preSelectedType = itemName
-                    )
+                    if ((farmerStatus == "guest" || !isVerified) && role != "Admin") {
+                        UnverifiedFarmerGate(
+                            onVerifyClick = { navController.navigate(Screen.ResubmitCredentials.route) },
+                            onBack = { navController.popBackStack() }
+                        )
+                    } else {
+                        RequestResourceScreen(
+                            onBack = { navController.popBackStack() },
+                            userViewModel = userViewModel,
+                            preSelectedType = itemName
+                        )
+                    }
                 }
+
                 composable(Screen.Report.route) {
                     ReportIssueScreen(
                         onBack = { navController.popBackStack() },
                         userViewModel = userViewModel
                     )
                 }
+
                 composable(Screen.Profile.route) {
                     ProfileScreen(
                         userViewModel = userViewModel,
                         onEditProfileClick = { navController.navigate(Screen.EditProfile.route) },
-                        onSecurityClick = { navController.navigate(Screen.Security.route) },
                         onSupportClick = { navController.navigate(Screen.Support.route) },
-                        onVerificationClick = { navController.navigate("account_verification") },
+                        onFeedbackClick = { navController.navigate(Screen.Feedback.route) },
+                        onVerificationClick = { 
+                            if (farmerStatus == "guest") {
+                                navController.navigate(Screen.ResubmitCredentials.route)
+                            } else if (farmerStatus == "pending") {
+                                navController.navigate(Screen.ApplicationStatus.route)
+                            } else if (farmerStatus == "not_submitted") {
+                                navController.navigate(Screen.CredentialSubmission.route)
+                            } else {
+                                navController.navigate(Screen.AccountVerification.route)
+                            }
+                        },
                         onTagFarmClick = { navController.navigate(Screen.FarmTagging.route) },
+                        onAllFarmsMapClick = { navController.navigate(Screen.AllFarmsMap.route) },
                         onLogoutClick = {
-                            FirebaseAuth.getInstance().signOut()
-                            navController.navigate("auth") {
-                                popUpTo(navController.graph.id) { inclusive = true }
+                            userViewModel.logout(context)
+                            navController.navigate(Screen.VerificationGate.route) {
+                                popUpTo(0) { inclusive = true }
                             }
                         }
                     )
                 }
-                composable("account_verification") {
+
+                composable(Screen.AccountVerification.route) {
                     AccountVerificationScreen(
                         userViewModel = userViewModel,
                         onBack = { navController.popBackStack() }
                     )
                 }
+
                 composable(Screen.EditProfile.route) {
                     EditProfileScreen(
                         userViewModel = userViewModel,
                         onBack = { navController.popBackStack() }
                     )
                 }
+
+
                 composable(Screen.Security.route) {
                     SecurityScreen(
                         userViewModel = userViewModel,
                         onBack = { navController.popBackStack() }
                     )
                 }
+
                 composable(Screen.Support.route) {
-                    SupportScreen(onBack = { navController.popBackStack() })
+                    SupportScreen(userViewModel = userViewModel, onBack = { navController.popBackStack() })
                 }
-                composable(Screen.Admin.route) {
-                    AdminDashboardScreen(onBack = { navController.popBackStack() })
-                }
-                composable(Screen.Weather.route) {
-                    WeatherScreen(onBack = { navController.popBackStack() })
-                }
-                composable(Screen.Markets.route) {
-                    MarketsScreen(onBack = { navController.popBackStack() })
-                }
-                composable(Screen.Community.route) {
-                    CommunityScreen(
+
+                composable(Screen.AiChat.route) {
+                    com.group7.agriserve.ui.chat.ChatScreen(
                         onBack = { navController.popBackStack() },
-                        userName = userViewModel.farmerName.value
+                        onNavigate = { route -> navController.navigate(route) }
                     )
                 }
-                composable(Screen.Status.route) {
-                    FarmerStatusScreen(onBack = { navController.popBackStack() })
-                }
-                composable(Screen.FarmTagging.route) {
-                    FarmTaggingScreen(
+
+                composable(Screen.Feedback.route) {
+                    FeedbackScreen(
                         userViewModel = userViewModel,
                         onBack = { navController.popBackStack() }
                     )
                 }
+
+                composable(Screen.Admin.route) {
+                    AdminDashboardScreen(onBack = { navController.popBackStack() })
+                }
+
+                composable(Screen.Weather.route) {
+                    WeatherScreen(
+                        userViewModel = userViewModel,
+                        onBack = { navController.popBackStack() }
+                    )
+                }
+
+                composable(Screen.Markets.route) {
+                    MarketsScreen(onBack = { navController.popBackStack() })
+                }
+
+                composable(Screen.Community.route) {
+                    CommunityScreen(
+                        onBack = { navController.popBackStack() },
+                        userName = userViewModel.farmerName.value,
+                        isUserVerified = userViewModel.isVerified.value
+                    )
+                }
+
+                composable(
+                    route = Screen.Status.route + "?filter={filter}",
+                    arguments = listOf(
+                        navArgument("filter") {
+                            type = NavType.StringType
+                            defaultValue = "All"
+                        }
+                    )
+                ) { backStackEntry ->
+                    val filter = backStackEntry.arguments?.getString("filter") ?: "All"
+                    FarmerStatusScreen(
+                        userViewModel = userViewModel,
+                        initialFilter = filter,
+                        onBack = { navController.popBackStack() },
+                        onRequestClick = { navController.navigate(Screen.Request.route + "?itemName=") },
+                        onReportClick = { navController.navigate(Screen.Report.route) }
+                    )
+                }
+
+                composable(Screen.FarmTagging.route) {
+                    FarmTaggingScreen(
+                        userViewModel = userViewModel,
+                        onBack = { navController.popBackStack() },
+                        onViewAllFarmsClick = { navController.navigate(Screen.AllFarmsMap.route) }
+                    )
+                }
+
+                composable(Screen.AllFarmsMap.route) {
+                    AllFarmsMapScreen(
+                        userViewModel = userViewModel,
+                        onBack = { navController.popBackStack() }
+                    )
+                }
+
             }
         }
     }

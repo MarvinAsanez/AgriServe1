@@ -15,6 +15,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "23714483028-2qvnstqj2428042jg533q1t5vqkj09gu.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.group7.agriserve",
+            "certificate_hash": "87d0b8ef5f930659a0aaff14256b5d5b77edbdac"
+          }
+        },
+        {
           "client_id": "23714483028-g6sobka0kn0cgh72k3q8c0bpjoo9c1tt.apps.googleusercontent.com",
           "client_type": 3
         }

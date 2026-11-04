@@ -8,6 +8,13 @@
     <string name="app_slogan">Empowering Local Farmers</string>
     <string name="app_logo_desc">AgriServe Logo</string>
 
+    <!-- Navigation -->
+    <string name="home">Home</string>
+    <string name="inventory">DA Resources</string>
+    <string name="request">Request</string>
+    <string name="report">Report</string>
+    <string name="profile">Profile</string>
+
     <!-- Signup Screen -->
     <string name="full_name">Full Name</string>
     <string name="confirm_password">Confirm Password</string>
@@ -15,6 +22,133 @@
 
     <!-- Home Screen -->
     <string name="welcome_back">Welcome back, Farmer!</string>
+    <string name="welcome_to_agriserve">Welcome to AgriServe</string>
     <string name="latest_news">Latest Agricultural News</string>
     <string name="quick_actions">Quick Actions</string>
+    <string name="da_updates">DA Latest Updates</string>
+    <string name="services_monitoring">Services &amp; Monitoring</string>
+    <string name="inventory_card">DA Resources</string>
+    <string name="my_status">Requests Status</string>
+    <string name="markets">Markets</string>
+    <string name="weather">Weather</string>
+    <string name="farmer_community">Farmer Community</string>
+    <string name="farm_tagging">Farm Tagging</string>
+    <string name="view_all_farms">Farms Map</string>
+    <string name="refresh_news">Refresh News</string>
+    <string name="news_error">Could not load latest news from DA.gov.ph</string>
+
+    <!-- Profile Screen -->
+    <string name="farmer_profile">Farmer Profile</string>
+    <string name="verified_farmer">Verified Farmer</string>
+    <string name="verification_pending">Verification Pending</string>
+    <string name="account_details">Account Details</string>
+    <string name="verification_identity">Verification &amp; Identity</string>
+    <string name="location_details">Location Details</string>
+    <string name="account_settings">Account Settings</string>
+    <string name="logout_account">LOGOUT ACCOUNT</string>
+    <string name="language">Language</string>
+    <string name="select_language">Select Language</string>
+    <string name="english">English</string>
+    <string name="tagalog">Tagalog</string>
+    <string name="bikol">Bikol</string>
+    <string name="update_profile_info">Update Profile Information</string>
+    <string name="security_password">Security &amp; Password</string>
+    <string name="help_support">Help &amp; Support</string>
+    <string name="tag_my_farm">Tag My Farm Location</string>
+    <string name="complete_verification">Complete Verification</string>
+    <string name="theme">Theme</string>
+    <string name="select_theme">Select Theme</string>
+    <string name="light_mode">Light Mode</string>
+    <string name="dark_mode">Dark Mode</string>
+    <string name="system_default">System Default</string>
+
+    <!-- Farm Tagging Screen -->
+    <string name="farm_tagging_details">Farm Tagging &amp; Details</string>
+    <string name="save">SAVE</string>
+    <string name="exact_location_tagged">Exact location tagged!</string>
+    <string name="location_error_gps">Could not get location. Is GPS enabled?</string>
+    <string name="error_getting_location">Error getting location</string>
+    <string name="enter_farm_name">Please enter a farm name</string>
+    <string name="farm_save_success">Farm details saved successfully!</string>
+    <string name="farm_save_failed">Failed to save: %1$s</string>
+    <string name="get_exact_location">Get Exact Location</string>
+    <string name="geotag_label">Geotag: %1$s</string>
+    <string name="farm_details_title">Farm Details</string>
+    <string name="geotagged">Geotagged</string>
+    <string name="farm_name_label">Farm Name</string>
+    <string name="farmer_owner_label">Farmer/Owner Name</string>
+    <string name="zone_barangay_label">Zone / Barangay</string>
+    <string name="zone_placeholder">e.g. Zone 1 / Barangay San Jose</string>
+    <string name="farm_address_label">Farm Address (Detected)</string>
+    <string name="size_ha_label">Size (Ha)</string>
+    <string name="primary_crop_label">Primary Crop</string>
+    <string name="public_visibility">Public Visibility</string>
+    <string name="private_visibility">Private Visibility</string>
+    <string name="public_desc">Your farm is visible to other farmers.</string>
+    <string name="private_desc">Your farm is hidden from other farmers.</string>
+    <string name="update_geotag_btn">Update Exact Geotag Location</string>
+    <string name="farm_photos">Farm Photos</string>
+    <string name="add_photo">Add Photo</string>
+    <string name="select_image_source">Select Image Source</string>
+    <string name="image_source_desc">Choose how you want to add a photo of your farm.</string>
+    <string name="gallery">Gallery</string>
+    <string name="camera">Camera</string>
+    <string name="close">Close</string>
+    <string name="step_map_pin">1. Map Pin &amp; GPS</string>
+    <string name="step_farm_details">2. Farm Details</string>
+    <string name="proceed_to_details">Next: Farm Details</string>
+    <string name="back_to_map">Back to Map</string>
+    <string name="save_farm_geotag">Save Farm Geotag</string>
+    <string name="tap_map_hint">Tap map or use GPS to pin your farm</string>
+    <string name="location_pinned_title">Pinned Farm Location</string>
+    <string name="no_location_pinned">No location pinned yet</string>
+    <string name="tap_to_place_pin">Tap on the map or press the GPS button below to set your farm\'s exact geotag location.</string>
+
+    <!-- Report Screen -->
+    <string name="report_incident">Report Incident</string>
+    <string name="incident_evidence">Incident Evidence</string>
+    <string name="contact_number">Contact Number</string>
+    <string name="describe_issue">Describe the Issue / Pest Info</string>
+    <string name="submit_geotagged_report">SUBMIT GEOTAGGED REPORT</string>
+    <string name="previous_reports">Previous Reports</string>
+    <string name="submitting">Submitting...</string>
+    <string name="report_success">Report Submitted Successfully</string>
+
+    <!-- Request Screen -->
+    <string name="request_resource">Request Resource</string>
+    <string name="application_form">Application Form</string>
+    <string name="select_resource">Select Available Resource from DA</string>
+    <string name="quantity">Qty</string>
+    <string name="farm_size">Farm Size</string>
+    <string name="description">Description</string>
+    <string name="farm_evidence">Farm Evidence (Photo Required)</string>
+    <string name="submit_application">SUBMIT APPLICATION</string>
+
+    <!-- Inventory Screen -->
+    <string name="available_resources">Available Resources</string>
+    <string name="no_resources_available">No resources available at the moment.</string>
+    <string name="tap_to_request">Tap to request this item</string>
+    <string name="in_stock">In Stock</string>
+    <string name="out_of_stock">Out of Stock</string>
+    <string name="available_qty_text">%1$s • %2$d %3$s available</string>
+    <string name="back">Back</string>
+
+    <!-- Feedback & Evaluation -->
+    <string name="feedback_evaluation">Feedback &amp; Evaluation</string>
+    <string name="feedback_slogan">Technology Acceptance Model (TAM)</string>
+    <string name="rate_system">Rate AgriServe Experience</string>
+    <string name="pu_title">Perceived Usefulness (PU)</string>
+    <string name="peou_title">Perceived Ease of Use (PEOU)</string>
+    <string name="eff_title">System Efficiency (EFF)</string>
+    <string name="rel_title">Reliability &amp; Security (REL)</string>
+    <string name="submit_evaluation">SUBMIT EVALUATION TO DA</string>
+    <string name="da_clearance">Official DA Issue Clearance</string>
+<!-- Extra Dynamic Strings -->
+    <string name="ai_support_agent">AI Support Agent</string>
+    <string name="unified_farms_map">Unified Farms Map</string>
+    <string name="notifications_title">Notifications</string>
+    <string name="emergency_calamity_alert">EMERGENCY CALAMITY ALERT</string>
+    <string name="emergency_precaution_hint">Tap to read emergency farm precautions &amp; hotlines</string>
+    <string name="da_advisories_updates">DA Advisories &amp; Updates</string>
+    <string name="close_advisory">Close Advisory</string>
 </resources>

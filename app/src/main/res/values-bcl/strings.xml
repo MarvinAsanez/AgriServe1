@@ -1,0 +1,154 @@
+<resources>
+    <string name="app_name">AgriServe</string>
+    <string name="login">Mag-login</string>
+    <string name="signup">Magrehistro</string>
+    <string name="create_account">Maggibo nin Bagong Account</string>
+    <string name="email_address">Email Address</string>
+    <string name="password">Password</string>
+    <string name="app_slogan">Pagpakusog sa mga Lokal na Paraoma</string>
+    <string name="app_logo_desc">Logo kan AgriServe</string>
+
+    <!-- Navigation -->
+    <string name="home">Home</string>
+    <string name="inventory">Mga Kagamitan kan DA</string>
+    <string name="request">Kahagadan</string>
+    <string name="report">Magsumbong</string>
+    <string name="profile">Profile</string>
+
+    <!-- Signup Screen -->
+    <string name="full_name">Bilog na Pangaran</string>
+    <string name="confirm_password">Kumpirmaron an Password</string>
+    <string name="already_have_account">Igwa na nin account? Mag-login</string>
+
+    <!-- Home Screen -->
+    <string name="welcome_back">Maogmang pagbalik, Paraoma!</string>
+    <string name="welcome_to_agriserve">Maogmang pag-abot sa AgriServe</string>
+    <string name="latest_news">Mga Pinakabag-ong Bareta sa Agrikultura</string>
+    <string name="quick_actions">Mabilisan na Aksyon</string>
+    <string name="da_updates">Mga Update asin Paisi hale sa DA</string>
+    <string name="services_monitoring">Mga Serbisyo asin Pag-monitor</string>
+    <string name="inventory_card">Mga Kagamitan kan DA</string>
+    <string name="my_status">Kamugtakan kan mga Kahagadan</string>
+    <string name="markets">Presyo sa Merkado</string>
+    <string name="weather">Ulat sa Panahon</string>
+    <string name="farmer_community">Komunidad nin mga Paraoma</string>
+    <string name="farm_tagging">Pag-tag kan Sakahan</string>
+    <string name="view_all_farms">Mapa kan mga Umahan</string>
+    <string name="refresh_news">Sariwahon an Bareta</string>
+    <string name="news_error">Dai ma-load an bareta hale sa DA.gov.ph</string>
+
+    <!-- Profile Screen -->
+    <string name="farmer_profile">Profile kan Paraoma</string>
+    <string name="verified_farmer">Beripikadong Paraoma</string>
+    <string name="verification_pending">Kina-kumpirmar pa an Pagpamatood</string>
+    <string name="account_details">Mga Detalye kan Account</string>
+    <string name="verification_identity">Beripikasyon asin Pagkamidbid</string>
+    <string name="location_details">Mga Detalye kan Lokasyon</string>
+    <string name="account_settings">Mga Setting kan Account</string>
+    <string name="logout_account">MAG-LOG OUT</string>
+    <string name="language">Lenggwahe</string>
+    <string name="select_language">Magpili nin Lenggwahe</string>
+    <string name="english">English</string>
+    <string name="tagalog">Tagalog / Filipino</string>
+    <string name="bikol">Bikol</string>
+    <string name="update_profile_info">I-update an Impormasyon kan Profile</string>
+    <string name="security_password">Seguridad asin Password</string>
+    <string name="help_support">Tabang asin Suporta</string>
+    <string name="tag_my_farm">I-tag an Lokasyon kan Sakong Uma</string>
+    <string name="complete_verification">Kumpletohon an Beripikasyon</string>
+    <string name="theme">Tema</string>
+    <string name="select_theme">Magpili nin Tema</string>
+    <string name="light_mode">Maliwanag (Light Mode)</string>
+    <string name="dark_mode">Madiklom (Dark Mode)</string>
+    <string name="system_default">Susog sa Sistema</string>
+
+    <!-- Farm Tagging Screen -->
+    <string name="farm_tagging_details">Pagtala asin mga Detalye kan Uma</string>
+    <string name="save">I-SAVE</string>
+    <string name="exact_location_tagged">Eksitong na-tag an eksaktong lokasyon!</string>
+    <string name="location_error_gps">Dai nakua an lokasyon. Pakisusi kun bukas an GPS.</string>
+    <string name="error_getting_location">Igwang sala sa pagkuha kan lokasyon</string>
+    <string name="enter_farm_name">Paki-laag tabi kan pangaran kan uma</string>
+    <string name="farm_save_success">Eksitong naitala an mga detalye kan uma!</string>
+    <string name="farm_save_failed">Dai naitala an uma: %1$s</string>
+    <string name="get_exact_location">Kuanon an Eksaktong Lokasyon (GPS)</string>
+    <string name="geotag_label">Geotag: %1$s</string>
+    <string name="farm_details_title">Impormasyon kan Uma</string>
+    <string name="geotagged">Naka-geotag</string>
+    <string name="farm_name_label">Pangaran kan Uma</string>
+    <string name="farmer_owner_label">Pangaran kan Paraoma / Kagsadiri</string>
+    <string name="zone_barangay_label">Purok / Barangay</string>
+    <string name="zone_placeholder">hal. Purok 1 / Brgy. San Jose</string>
+    <string name="farm_address_label">Direksyon kan Uma (Hale sa GPS)</string>
+    <string name="size_ha_label">Sukol (Ektarya)</string>
+    <string name="primary_crop_label">Panginot na Pananom</string>
+    <string name="public_visibility">Pampubliko</string>
+    <string name="private_visibility">Pribado</string>
+    <string name="public_desc">Mahihiling kan mga kapwa paraoma sa mapa.</string>
+    <string name="private_desc">Nakatago sa ibang paraoma (Ika asin an DA sana).</string>
+    <string name="update_geotag_btn">I-update an Eksaktong Geotag Lokasyon</string>
+    <string name="farm_photos">Mga Litrato kan Uma</string>
+    <string name="add_photo">Magdugang nin Litrato</string>
+    <string name="select_image_source">Kun Saen Makua an Litrato</string>
+    <string name="image_source_desc">Magpili kun makua gamit an kamera o hale sa galerya.</string>
+    <string name="gallery">Galerya</string>
+    <string name="camera">Kamera</string>
+    <string name="close">Isara</string>
+    <string name="step_map_pin">1. I-pin sa Mapa (GPS)</string>
+    <string name="step_farm_details">2. Detalye kan Uma</string>
+    <string name="proceed_to_details">Sunod: Detalye kan Uma</string>
+    <string name="back_to_map">Magbalik sa Mapa</string>
+    <string name="save_farm_geotag">I-save an Geotag kan Uma</string>
+    <string name="tap_map_hint">Pinduton an mapa o gamiton an GPS nganing itukdo an uma</string>
+    <string name="location_pinned_title">Na-pin na Lokasyon kan Uma</string>
+    <string name="no_location_pinned">Mayong lokasyon na na-pin pa</string>
+    <string name="tap_to_place_pin">Pinduton an mapa o an GPS button sa ibaba nganing itakda an eksaktong lokasyon kan saimong uma.</string>
+
+    <!-- Report Screen -->
+    <string name="report_incident">Magsumbong nin Insidente</string>
+    <string name="incident_evidence">Katibayan / Litrato kan Insidente</string>
+    <string name="contact_number">Numero kan Telepono / Mobile</string>
+    <string name="describe_issue">Ipalinawag an Problema o Peste</string>
+    <string name="submit_geotagged_report">IPASA AN GEOTAGGED NA SUMBONG</string>
+    <string name="previous_reports">Mga Naenot na Sumbong</string>
+    <string name="submitting">Ipinapasa sa DA…</string>
+    <string name="report_success">Eksitong Naipasa an Sumbong</string>
+
+    <!-- Request Screen -->
+    <string name="request_resource">Maghagad nin Kagamitan sa DA</string>
+    <string name="application_form">Pormularyo nin Paghagad</string>
+    <string name="select_resource">Magpili nin Kagamitan hale sa DA</string>
+    <string name="quantity">Kadakol (Qty)</string>
+    <string name="farm_size">Sukol kan Uma (Ektarya)</string>
+    <string name="description">Paliwanag / Rason kan Kahagadan</string>
+    <string name="farm_evidence">Katibayan kan Uma (Kaipuhan nin Litrato)</string>
+    <string name="submit_application">IPASA AN KAHAGADAN</string>
+
+    <!-- Inventory Screen -->
+    <string name="available_resources">Mga Gamit hale sa DA</string>
+    <string name="no_resources_available">Mayong kagamitan na available sa ngunyan.</string>
+    <string name="tap_to_request">Pinduton nganing maghagad kaining gamit</string>
+    <string name="in_stock">Igwang Stock</string>
+    <string name="out_of_stock">Ubos na an Stock</string>
+    <string name="available_qty_text">%1$s • %2$d %3$s an available sa DA</string>
+    <string name="back">Magbalik</string>
+
+    <!-- Feedback & Evaluation -->
+    <string name="feedback_evaluation">Puna asin Pagsukol kan Sistema</string>
+    <string name="feedback_slogan">Technology Acceptance Model (TAM)</string>
+    <string name="rate_system">I-rate an AgriServe</string>
+    <string name="pu_title">Kapakinabangan sa Paggamit (PU)</string>
+    <string name="peou_title">Gaan asin Dali nin Paggamit (PEOU)</string>
+    <string name="eff_title">Bilis asin Episyensya (EFF)</string>
+    <string name="rel_title">Pagkamaaasahan asin Seguridad (REL)</string>
+    <string name="submit_evaluation">IPASA AN PAGSUKOL SA DA</string>
+    <string name="da_clearance">Opisyal na Clearance hale sa DA</string>
+<!-- Extra Dynamic Strings -->
+    <string name="ai_support_agent">AI Support Agent</string>
+    <string name="unified_farms_map">Tiripon na Mapa kan Umahan</string>
+    <string name="notifications_title">Mga Notipikasyon</string>
+    <string name="emergency_calamity_alert">PATANID SA KALAMIDAD</string>
+    <string name="emergency_precaution_hint">Pinduton para sa mga pag-iingat asin emergency hotline</string>
+    <string name="da_advisories_updates">Mga Paisi asin Update kan DA</string>
+    <string name="close_advisory">Isara an Paisi</string>
+</resources>

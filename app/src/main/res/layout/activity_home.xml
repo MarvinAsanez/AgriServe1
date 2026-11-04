@@ -141,7 +141,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="12dp"
                             android:fontFamily="sans-serif-bold"
-                            android:text="Inventory"
+                            android:text="DA Resources"
                             android:textColor="@color/agri_green_dark" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
@@ -175,7 +175,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="12dp"
                             android:fontFamily="sans-serif-bold"
-                            android:text="My Status"
+                            android:text="Requests Status"
                             android:textColor="#1565C0" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
