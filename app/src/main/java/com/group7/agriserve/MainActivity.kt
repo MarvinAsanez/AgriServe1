@@ -1,6 +1,7 @@
 package com.group7.agriserve
 
 import android.os.Bundle
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -259,6 +260,20 @@ fun AgriServeApp(userViewModel: UserViewModel) {
                     },
                     onSignupClick = {
                         navController.navigate(Screen.CredentialSubmission.route)
+                    },
+                    onForgotPasswordClick = {
+                        navController.navigate(Screen.ForgotPassword.route)
+                    }
+                )
+            }
+
+            // Forgot Password Screen (Dual-Channel OTP)
+            composable(Screen.ForgotPassword.route) {
+                ForgotPasswordScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onResetSuccess = {
+                        navController.popBackStack()
+                        Toast.makeText(context, "Password reset successfully. Please log in with your new password.", Toast.LENGTH_LONG).show()
                     }
                 )
             }

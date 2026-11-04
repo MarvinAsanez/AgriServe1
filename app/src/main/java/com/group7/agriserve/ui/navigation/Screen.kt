@@ -12,6 +12,7 @@ sealed class Screen(val route: String) {
 
     // Legacy Auth Routes mapped to Verification Gate
     object Login : Screen("login")
+    object ForgotPassword : Screen("forgot_password")
     object Signup : Screen("credential_submission")
     object AccountVerification : Screen("account_verification")
     object Verification : Screen("account_verification")

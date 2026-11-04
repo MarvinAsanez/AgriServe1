@@ -50,7 +50,8 @@ private fun Context.findActivity(): Activity? {
 fun LoginScreen(
     userViewModel: UserViewModel? = null,
     onLoginClick: () -> Unit,
-    onSignupClick: () -> Unit
+    onSignupClick: () -> Unit,
+    onForgotPasswordClick: () -> Unit = {}
 ) {
     val auth = remember { FirebaseAuth.getInstance() }
     val coroutineScope = rememberCoroutineScope()
@@ -280,6 +281,11 @@ fun LoginScreen(
             // Handle Signup / Submit Credentials Button Click
             binding.btnSignup.setOnClickListener {
                 onSignupClick()
+            }
+
+            // Handle Forgot Password Click
+            binding.btnForgotPassword.setOnClickListener {
+                onForgotPasswordClick()
             }
 
             binding.root

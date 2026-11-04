@@ -30,6 +30,17 @@ data class VerifyOtpResponse(
     val message: String = ""
 )
 
+data class ResetPasswordRequest(
+    val identifier: String,
+    val otp: String,
+    val newPassword: String
+)
+
+data class ResetPasswordResponse(
+    val success: Boolean = false,
+    val message: String = ""
+)
+
 /**
  * Retrofit Interface for AgriServe Backend Authentication & Dual-Channel OTP.
  */
@@ -40,6 +51,9 @@ interface AuthApi {
 
     @POST("api/auth/verify-otp")
     suspend fun verifyOtp(@Body request: VerifyOtpRequest): Response<VerifyOtpResponse>
+
+    @POST("api/auth/reset-password")
+    suspend fun resetPassword(@Body request: ResetPasswordRequest): Response<ResetPasswordResponse>
 
     companion object {
         // Primary LAN IP for physical device testing; secondary for Android Emulator loopback

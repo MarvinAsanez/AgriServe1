@@ -76,7 +76,7 @@
             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="24dp"
+            android:layout_marginBottom="6dp"
             android:hint="Password"
             app:boxCornerRadiusBottomEnd="12dp"
             app:boxCornerRadiusBottomStart="12dp"
@@ -96,6 +96,21 @@
                 android:fontFamily="sans-serif"
                 android:inputType="textPassword" />
         </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Forgot Password Link -->
+        <TextView
+            android:id="@+id/btnForgotPassword"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="end"
+            android:layout_marginBottom="18dp"
+            android:fontFamily="sans-serif-medium"
+            android:text="Forgot Password?"
+            android:textColor="@color/agri_green_primary"
+            android:textSize="13sp"
+            android:padding="4dp"
+            android:clickable="true"
+            android:focusable="true" />
 
         <!-- Main Email/Password Login Button -->
         <Button
