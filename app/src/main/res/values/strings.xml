@@ -165,4 +165,18 @@
     <string name="assistant_calculate">Calculate DA Allocation</string>
     <string name="assistant_autofill">Apply to Request Form</string>
     <string name="assistant_applied_toast">Request form filled with DA recommendations!</string>
+
+    <!-- RSBSA Guide Feature -->
+    <string name="not_rsbsa_enrolled_title">Not an RSBSA Enrolled Farmer?</string>
+    <string name="not_rsbsa_enrolled_subtitle">Department of Agriculture Official Guide</string>
+    <string name="not_rsbsa_enrolled_desc">Don\'t have an RSBSA number yet? Learn how to register with the DA, view required documents, download official forms, and follow step-by-step submission instructions.</string>
+    <string name="view_rsbsa_guide">View RSBSA Enrollment Guide</string>
+    <string name="rsbsa_guide_title">DA RSBSA Registration Guide</string>
+    <string name="rsbsa_tab_overview">Overview</string>
+    <string name="rsbsa_tab_requirements">Requirements</string>
+    <string name="rsbsa_tab_steps">How to Register</string>
+    <string name="rsbsa_tab_forms">Forms &amp; Links</string>
+    <string name="rsbsa_download_form">Download Official RSBSA Form (PDF)</string>
+    <string name="rsbsa_check_status_online">Check Status Online (DA Finder)</string>
+    <string name="rsbsa_visit_da_portal">Visit Official DA RSBSA Portal</string>
 </resources>

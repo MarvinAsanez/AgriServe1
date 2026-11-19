@@ -160,4 +160,18 @@
     <string name="assistant_calculate">Kalkulahin ang Alokasyon ng DA</string>
     <string name="assistant_autofill">I-apply sa Pormularyo</string>
     <string name="assistant_applied_toast">Nailagay na sa form ang rekomendasyon ng DA!</string>
+
+    <!-- RSBSA Guide Feature -->
+    <string name="not_rsbsa_enrolled_title">Hindi pa Rehistrado sa RSBSA?</string>
+    <string name="not_rsbsa_enrolled_subtitle">Opisyal na Gabay ng Kagawaran ng Pagsasaka (DA)</string>
+    <string name="not_rsbsa_enrolled_desc">Wala pa bang RSBSA number? Alamin kung paano magpatala sa DA, mga kailangang dokumento, mag-download ng opisyal na porma, at mga hakbang sa pagsusumite.</string>
+    <string name="view_rsbsa_guide">Tingnan ang Gabay sa RSBSA</string>
+    <string name="rsbsa_guide_title">Gabay sa Pagpapatala sa DA RSBSA</string>
+    <string name="rsbsa_tab_overview">Pangkalahatan</string>
+    <string name="rsbsa_tab_requirements">Mga Kinakailangan</string>
+    <string name="rsbsa_tab_steps">Mga Hakbang</string>
+    <string name="rsbsa_tab_forms">Mga Porma at Link</string>
+    <string name="rsbsa_download_form">I-download ang Opisyal na RSBSA Form (PDF)</string>
+    <string name="rsbsa_check_status_online">I-check ang Status Online (DA Finder)</string>
+    <string name="rsbsa_visit_da_portal">Puntahan ang Opisyal na DA Portal</string>
 </resources>

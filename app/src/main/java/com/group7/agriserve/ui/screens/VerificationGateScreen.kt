@@ -4,6 +4,8 @@ import android.accounts.AccountManager
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
+import android.content.Intent
+import android.net.Uri
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -16,7 +18,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Login
+import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -30,6 +32,8 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.credentials.CredentialManager
@@ -81,6 +85,9 @@ fun VerificationGateScreen(
     var showManualLookup by remember { mutableStateOf(false) }
     var showGoogleAccountDialog by remember { mutableStateOf(false) }
     var dialogEmail by remember { mutableStateOf("") }
+
+    // RSBSA Registration Guide Modal State
+    var showRsbsaGuideDialog by remember { mutableStateOf(false) }
 
     // Google OTP verification modal state
     var pendingGoogleEmail by remember { mutableStateOf("") }
@@ -816,7 +823,90 @@ fun VerificationGateScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // HELPER CARD: Not an RSBSA Enrolled Farmer?
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
+                ),
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.35f))
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = Color(0xFF2E7D32).copy(alpha = 0.15f),
+                            modifier = Modifier.size(38.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Default.Agriculture,
+                                    contentDescription = null,
+                                    tint = Color(0xFF2E7D32),
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column {
+                            Text(
+                                text = "Not an RSBSA Enrolled Farmer?",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                            Text(
+                                text = "Department of Agriculture Official Guide",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Text(
+                        text = "Don't have an RSBSA number yet? Learn how to register with the DA, view required documentary proofs, download official PDF forms, and find your local submission office.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        lineHeight = 18.sp
+                    )
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    Button(
+                        onClick = { showRsbsaGuideDialog = true },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF2E7D32)
+                        ),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.MenuBook,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "View RSBSA Enrollment Guide",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
 
             // Toggle for Manual Gmail Application Status Check
             TextButton(
@@ -1144,6 +1234,630 @@ fun VerificationGateScreen(
                     }
                 }
             )
+        }
+
+        // RSBSA Enrollment Guide Dialog
+        if (showRsbsaGuideDialog) {
+            RsbsaEnrollmentGuideDialog(
+                onDismiss = { showRsbsaGuideDialog = false },
+                onOpenUrl = { url ->
+                    try {
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                        context.startActivity(intent)
+                    } catch (e: Exception) {
+                        Toast.makeText(context, "Unable to open link: ${e.message}", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            )
+        }
+    }
+}
+
+/**
+ * RSBSA Registration & Updating Interactive Guide Dialog
+ * Grounded on official Department of Agriculture guidelines:
+ * https://www.da.gov.ph/rsbsa-registration-and-updating/
+ */
+@Composable
+fun RsbsaEnrollmentGuideDialog(
+    onDismiss: () -> Unit,
+    onOpenUrl: (String) -> Unit
+) {
+    var selectedTab by remember { mutableIntStateOf(0) }
+    val tabTitles = listOf("Overview", "Requirements", "How to Register", "Forms & Links")
+    val tabIcons = listOf(
+        Icons.Default.Info,
+        Icons.AutoMirrored.Filled.Assignment,
+        Icons.Default.FormatListNumbered,
+        Icons.Default.Download
+    )
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth(0.95f)
+                .fillMaxHeight(0.90f),
+            shape = RoundedCornerShape(20.dp),
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 6.dp,
+            shadowElevation = 8.dp
+        ) {
+            Column(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                // Header Banner
+                Surface(
+                    color = Color(0xFF1B5E20),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = Color.White.copy(alpha = 0.2f),
+                            modifier = Modifier.size(40.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Default.Agriculture,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "DA RSBSA Enrollment Guide",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                            Text(
+                                text = "Registry System for Basic Sectors in Agriculture",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color.White.copy(alpha = 0.85f),
+                                maxLines = 1
+                            )
+                        }
+                        IconButton(
+                            onClick = onDismiss,
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Close",
+                                tint = Color.White
+                            )
+                        }
+                    }
+                }
+
+                // Tab Navigation
+                ScrollableTabRow(
+                    selectedTabIndex = selectedTab,
+                    edgePadding = 12.dp,
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                    contentColor = Color(0xFF2E7D32)
+                ) {
+                    tabTitles.forEachIndexed { index, title ->
+                        Tab(
+                            selected = selectedTab == index,
+                            onClick = { selectedTab = index },
+                            text = {
+                                Text(
+                                    text = title,
+                                    fontWeight = if (selectedTab == index) FontWeight.Bold else FontWeight.Normal,
+                                    fontSize = 13.sp
+                                )
+                            },
+                            icon = {
+                                Icon(
+                                    imageVector = tabIcons[index],
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        )
+                    }
+                }
+
+                // Tab Content
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                ) {
+                    when (selectedTab) {
+                        0 -> RsbsaOverviewTab()
+                        1 -> RsbsaRequirementsTab()
+                        2 -> RsbsaStepsTab()
+                        3 -> RsbsaFormsAndLinksTab(onOpenUrl = onOpenUrl)
+                    }
+                }
+
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+                // Bottom Footer Action
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    TextButton(
+                        onClick = { onOpenUrl("https://www.da.gov.ph/rsbsa-registration-and-updating/") }
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.OpenInNew,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                            tint = Color(0xFF2E7D32)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "DA Portal",
+                            color = Color(0xFF2E7D32),
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 13.sp
+                        )
+                    }
+
+                    Button(
+                        onClick = onDismiss,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF2E7D32)
+                        ),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Text("Understood", fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RsbsaOverviewTab() {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        // What is RSBSA Card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f))
+        ) {
+            Column(modifier = Modifier.padding(14.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Info,
+                        contentDescription = null,
+                        tint = Color(0xFF2E7D32),
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "What is RSBSA?",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF1B5E20)
+                    )
+                }
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = "The Registry System for Basic Sectors in Agriculture (RSBSA) is an electronic compilation of basic information of farmers, farmworkers, and fisherfolk in the Philippines. It serves as the official baseline for targeting and accessing all Department of Agriculture (DA) programs, interventions, and subsidies.",
+                    style = MaterialTheme.typography.bodySmall,
+                    lineHeight = 18.sp
+                )
+            }
+        }
+
+        // Who Can Register Card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+        ) {
+            Column(modifier = Modifier.padding(14.dp)) {
+                Text(
+                    text = "Who is Eligible to Register?",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                val eligibleList = listOf(
+                    "Farmers (Crop producers: Rice, Corn, Coconut, High Value Crops, Abaca, etc.)",
+                    "Farmworkers / Agricultural laborers",
+                    "Fisherfolk / Aquaculture operators",
+                    "Agri-Youth (Ages 18–30 engaged in farming or agri-studies)",
+                    "Filipino citizens of legal age (at least 18 years old)"
+                )
+
+                eligibleList.forEach { item ->
+                    Row(
+                        modifier = Modifier.padding(vertical = 3.dp),
+                        verticalAlignment = Alignment.Top
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            tint = Color(0xFF2E7D32),
+                            modifier = Modifier.size(16.dp).padding(top = 2.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = item,
+                            style = MaterialTheme.typography.bodySmall,
+                            lineHeight = 17.sp
+                        )
+                    }
+                }
+            }
+        }
+
+        // Direct Benefits Card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFFF1F8E9))
+        ) {
+            Column(modifier = Modifier.padding(14.dp)) {
+                Text(
+                    text = "Direct DA Subsidies & Benefits for RSBSA Farmers",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF2E7D32)
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                val benefits = listOf(
+                    "🌱 Free Certified Seeds" to "Hybrid and certified inbred rice seeds, corn seeds, and vegetable planting materials.",
+                    "🧪 Fertilizer Discount Vouchers (FDV)" to "Electronic discount vouchers redeemable at accredited agri-merchants.",
+                    "⛽ Fuel Subsidy Assistance" to "Fuel cash vouchers for machinery, irrigation pumps, tractors, and harvesters.",
+                    "💵 RFFA Financial Assistance" to "Direct cash assistance (Rice Farmers Financial Assistance program).",
+                    "🛡️ Free PCIC Crop Insurance" to "Automatic subsidized protection against typhoons, floods, droughts, pests, and plant diseases.",
+                    "🚨 Calamity Quick Response Fund" to "Fast emergency indemnities and replacement seeds during natural disasters."
+                )
+
+                benefits.forEach { (title, desc) ->
+                    Column(modifier = Modifier.padding(vertical = 4.dp)) {
+                        Text(
+                            text = title,
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF1B5E20)
+                        )
+                        Text(
+                            text = desc,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            lineHeight = 16.sp
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RsbsaRequirementsTab() {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text(
+            text = "Required Documents for RSBSA Registration",
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFF2E7D32)
+        )
+        Text(
+            text = "Prepare these documents before visiting your Municipal Agriculture Office (MAO) or City Agriculture Office (CAO):",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        val requirements = listOf(
+            Triple(
+                "1. Duly Accomplished RSBSA Form",
+                "Official DA RSBSA Enrollment Form completely filled out and signed with thumbmark/signature.",
+                Icons.Default.Description
+            ),
+            Triple(
+                "2. Valid Government-Issued Photo ID",
+                "PhilID (National ID), Driver's License, UMID, Voter's ID, Postal ID, Senior Citizen ID, or Barangay ID with photo.",
+                Icons.Default.Badge
+            ),
+            Triple(
+                "3. Recent 2x2 ID Photo",
+                "Two (2) recent 2x2 photographs with white background (some MAO offices capture photos digitally on-site).",
+                Icons.Default.AccountBox
+            ),
+            Triple(
+                "4. Proof of Land Ownership or Tenancy",
+                "• Landowner: OCT/TCT Title, CLOA, or current Real Property Tax Declaration.\n• Tenant / Lessee: Notarized Lease Contract or Landowner Certification.\n• Farmworker: Certification from Landowner or Barangay Chairman.",
+                Icons.Default.Landscape
+            ),
+            Triple(
+                "5. Farm Parcel Location & Crop Info",
+                "Exact parcel details including Barangay, farm area in hectares (ha), and crops currently cultivated or scheduled for planting.",
+                Icons.Default.Place
+            )
+        )
+
+        requirements.forEach { (title, desc, icon) ->
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)),
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+            ) {
+                Row(
+                    modifier = Modifier.padding(14.dp),
+                    verticalAlignment = Alignment.Top
+                ) {
+                    Surface(
+                        shape = CircleShape,
+                        color = Color(0xFF2E7D32).copy(alpha = 0.15f),
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = icon,
+                                contentDescription = null,
+                                tint = Color(0xFF2E7D32),
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text(
+                            text = title,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = desc,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            lineHeight = 17.sp
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RsbsaStepsTab() {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        Text(
+            text = "Step-by-Step Registration & Form Guide",
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFF2E7D32)
+        )
+
+        val steps = listOf(
+            Pair("Step 1: Obtain the Official Form", "Download the official DA RSBSA Enrollment Form PDF from the 'Forms & Links' tab, or pick up a free physical copy from your Municipal Agriculture Office (MAO) or Barangay Hall."),
+            Pair("Step 2: Fill Out Part 1 (Personal Profile)", "Write in BLOCK LETTERS: Full legal name, date and place of birth, gender, civil status, contact mobile number, permanent residential address, household members, and 4Ps / IP status."),
+            Pair("Step 3: Fill Out Part 2 (Farm Parcel & Crops)", "Indicate your primary agricultural activity (Farmer, Farmworker, Fisherfolk). For each farm parcel, write the Barangay, land tenure (Owner, Tenant, Lessee), parcel size in hectares, and crops (Rice, Corn, Coconut, HVC, etc.)."),
+            Pair("Step 4: Part 3 (Signatures & Endorsements)", "Affix your signature or thumbmark over your printed name under the Sworn Declaration. Obtain the signature of your Barangay Chairman or designated Agricultural Extension Worker (AEW)."),
+            Pair("Step 5: Submit to Local Agriculture Office", "Submit the completed form along with your valid ID and land ownership/tenancy proof directly to the Municipal Agriculture Office (MAO) or City Agriculture Office (CAO) in your town."),
+            Pair("Step 6: Data Encoding & RSBSA ID Issuance", "MAO staff will validate your documents, verify parcel geotags, and encode your record into the DA National Database. Once verified, you will receive your official RSBSA Number (e.g. 05-20-XX-XXX-XXXXXX)!")
+        )
+
+        steps.forEachIndexed { index, (stepTitle, stepDesc) ->
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+            ) {
+                Row(
+                    modifier = Modifier.padding(14.dp),
+                    verticalAlignment = Alignment.Top
+                ) {
+                    Surface(
+                        shape = CircleShape,
+                        color = Color(0xFF2E7D32),
+                        modifier = Modifier.size(28.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text(
+                                text = "${index + 1}",
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 13.sp
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text(
+                            text = stepTitle,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = stepDesc,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            lineHeight = 17.sp
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RsbsaFormsAndLinksTab(
+    onOpenUrl: (String) -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        Text(
+            text = "Official DA Downloadable Forms & Portals",
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFF2E7D32)
+        )
+
+        Text(
+            text = "Access official Department of Agriculture resources directly to download forms, check registration status, or view official advisories:",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        // Download Official Form Card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFFE8F5E9)),
+            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF81C784))
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Description,
+                        contentDescription = null,
+                        tint = Color(0xFF2E7D32),
+                        modifier = Modifier.size(22.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Official RSBSA Enrollment Form",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF1B5E20)
+                    )
+                }
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = "Download the official DA RSBSA Enrollment Form & Updating Slips A & B. Print and complete the form before heading to your local Municipal Agriculture Office.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color(0xFF2E7D32),
+                    lineHeight = 17.sp
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                Button(
+                    onClick = { onOpenUrl("https://www.da.gov.ph/rsbsa-registration-and-updating/") },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32)),
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(imageVector = Icons.Default.Download, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Download Form from DA Portal", fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+
+        // Online Status Finder Card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(22.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Check Status Online (DA RSBSA Finder)",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = "Already submitted your application to MAO? Check if your record is active in the official Department of Agriculture National RSBSA database.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    lineHeight = 17.sp
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                OutlinedButton(
+                    onClick = { onOpenUrl("https://finder-rsbsa.da.gov.ph/") },
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF2E7D32)),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF2E7D32))
+                ) {
+                    Icon(imageVector = Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Open DA RSBSA Finder", fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+
+        // Return to AgriServe Tip
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.4f))
+        ) {
+            Row(
+                modifier = Modifier.padding(14.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.VerifiedUser,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    text = "Once you receive your RSBSA Number from your Municipal Agriculture Office, return to AgriServe and tap 'Submit Credentials as New Farmer' to unlock digital services!",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer,
+                    lineHeight = 17.sp
+                )
+            }
         }
     }
 }
