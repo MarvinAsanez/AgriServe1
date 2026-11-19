@@ -185,6 +185,30 @@ fun ProfileScreen(
                 InfoRow(icon = Icons.Filled.Phone, label = "Mobile", value = userViewModel.farmerPhone.value.ifBlank { "Not provided" })
             }
 
+            ProfileInfoSection(title = "Farming & Demographics") {
+                InfoRow(icon = Icons.Filled.Agriculture, label = "Type of Farmer", value = userViewModel.farmerType.value.ifBlank { "Smallholder Farmer" })
+                val displayGender = if (userViewModel.gender.value.isNotBlank()) userViewModel.gender.value else if (userViewModel.sex.value.isNotBlank()) userViewModel.sex.value else "Not provided"
+                InfoRow(icon = Icons.Filled.Person, label = "Gender", value = displayGender)
+                
+                val cropsList = userViewModel.cropsPlanted.value
+                val formattedCrops = if (cropsList.isEmpty()) {
+                    "None specified"
+                } else {
+                    cropsList.joinToString(", ") { crop ->
+                        val emoji = when (crop) {
+                            "Coconut" -> "🥥 "
+                            "High Value Crops" -> "🥬 "
+                            "Rice" -> "🌾 "
+                            "Corn" -> "🌽 "
+                            "Abacca" -> "🌿 "
+                            else -> "📦 "
+                        }
+                        "$emoji$crop"
+                    }
+                }
+                InfoRow(icon = Icons.Filled.Eco, label = "Crops Planted", value = formattedCrops)
+            }
+
             ProfileInfoSection(title = stringResource(R.string.location_details)) {
                 val street = userViewModel.street.value
                 val barangay = userViewModel.barangay.value

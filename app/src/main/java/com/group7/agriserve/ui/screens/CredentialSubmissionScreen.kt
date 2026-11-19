@@ -1,5 +1,7 @@
 package com.group7.agriserve.ui.screens
 
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+
 import android.app.Activity
 import android.app.DatePickerDialog
 import android.content.ContextWrapper
@@ -72,7 +74,7 @@ import androidx.compose.ui.text.style.TextAlign
  * and Back-to-Back Valid Government ID (with Camera Scanner & Blurriness Verification)
  * for review by the Department of Agriculture.
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun CredentialSubmissionScreen(
     userViewModel: UserViewModel,
@@ -105,6 +107,9 @@ fun CredentialSubmissionScreen(
     var lastName by remember { mutableStateOf(userViewModel.lastName.value) }
     var extensionName by remember { mutableStateOf(userViewModel.extensionName.value) }
     var sex by remember { mutableStateOf(if (userViewModel.sex.value.isNotBlank()) userViewModel.sex.value else "Male") }
+    var gender by remember { mutableStateOf(if (userViewModel.gender.value.isNotBlank()) userViewModel.gender.value else if (userViewModel.sex.value.isNotBlank()) userViewModel.sex.value else "Male") }
+    var farmerType by remember { mutableStateOf(userViewModel.farmerType.value.ifBlank { "Smallholder Farmer" }) }
+    var selectedCrops by remember { mutableStateOf(userViewModel.cropsPlanted.value.toSet().ifEmpty { setOf("Rice") }) }
     var birthdate by remember { mutableStateOf(userViewModel.birthdate.value) }
     var rsbsaNumber by remember { mutableStateOf(userViewModel.rsbsaNumber.value) }
 
@@ -396,6 +401,10 @@ fun CredentialSubmissionScreen(
             generalErrorMessage = "Please select your Birthdate."
             return false
         }
+        if (selectedCrops.isEmpty()) {
+            generalErrorMessage = "Please select at least one crop that you are planting."
+            return false
+        }
         if (regionName.trim().isBlank()) {
             generalErrorMessage = "Please select your Region."
             return false
@@ -483,8 +492,11 @@ fun CredentialSubmissionScreen(
             middleNameInput = middleName,
             lastNameInput = lastName,
             extensionNameInput = extensionName,
-            sexInput = sex,
+            sexInput = gender,
             birthdateInput = birthdate,
+            farmerTypeInput = farmerType,
+            genderInput = gender,
+            cropsPlantedInput = selectedCrops.toList(),
             phoneInput = phoneNumber,
             gmailInput = gmail,
             rsbsaNumberInput = rsbsaNumber,
@@ -731,33 +743,131 @@ fun CredentialSubmissionScreen(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // Sex Selection (Radio Buttons)
+            // Gender Selection (Radio Buttons)
             Text(
-                text = "Sex *",
+                text = "Gender *",
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Row(
                 verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.clickable { sex = "Male" }
-                ) {
-                    RadioButton(selected = (sex == "Male"), onClick = { sex = "Male" })
-                    Text("Male", style = MaterialTheme.typography.bodyMedium)
+                listOf("Male", "Female", "Other").forEach { opt ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.clickable { gender = opt; sex = opt }
+                    ) {
+                        RadioButton(selected = (gender == opt), onClick = { gender = opt; sex = opt })
+                        Text(opt, style = MaterialTheme.typography.bodyMedium)
+                    }
                 }
+            }
 
-                Spacer(modifier = Modifier.width(28.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.clickable { sex = "Female" }
+            // Type of Farmer Dropdown
+            var farmerTypeExpanded by remember { mutableStateOf(false) }
+            val farmerTypeOptions = listOf(
+                "Smallholder Farmer",
+                "Rice Farmer",
+                "Corn Farmer",
+                "Coconut Farmer",
+                "High Value Crops Farmer",
+                "Tenant / Sharecropper",
+                "Farmworker / Laborer",
+                "Others"
+            )
+
+            ExposedDropdownMenuBox(
+                expanded = farmerTypeExpanded,
+                onExpandedChange = { farmerTypeExpanded = !farmerTypeExpanded },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                OutlinedTextField(
+                    value = farmerType,
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Type of Farmer *") },
+                    leadingIcon = { Icon(Icons.Default.Agriculture, contentDescription = null) },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = farmerTypeExpanded) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                    shape = RoundedCornerShape(10.dp)
+                )
+                ExposedDropdownMenu(
+                    expanded = farmerTypeExpanded,
+                    onDismissRequest = { farmerTypeExpanded = false }
                 ) {
-                    RadioButton(selected = (sex == "Female"), onClick = { sex = "Female" })
-                    Text("Female", style = MaterialTheme.typography.bodyMedium)
+                    farmerTypeOptions.forEach { opt ->
+                        DropdownMenuItem(
+                            text = { Text(opt) },
+                            onClick = {
+                                farmerType = opt
+                                farmerTypeExpanded = false
+                            }
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // What crops are they planting? (Multi-select)
+            Text(
+                text = "What crops are you planting? * (Multi-select)",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = "Select all crop types that you produce or manage on your farm:",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+
+            val cropOptions = listOf("Coconut", "High Value Crops", "Rice", "Corn", "Abacca", "Others")
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                cropOptions.forEach { crop ->
+                    val isSelected = selectedCrops.contains(crop)
+                    FilterChip(
+                        selected = isSelected,
+                        onClick = {
+                            selectedCrops = if (isSelected) {
+                                selectedCrops - crop
+                            } else {
+                                selectedCrops + crop
+                            }
+                        },
+                        label = {
+                            val emoji = when (crop) {
+                                "Coconut" -> "🥥 "
+                                "High Value Crops" -> "🥬 "
+                                "Rice" -> "🌾 "
+                                "Corn" -> "🌽 "
+                                "Abacca" -> "🌿 "
+                                else -> "📦 "
+                            }
+                            Text("$emoji$crop")
+                        },
+                        leadingIcon = if (isSelected) {
+                            {
+                                Icon(
+                                    imageVector = Icons.Default.Check,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(FilterChipDefaults.IconSize)
+                                )
+                            }
+                        } else null
+                    )
                 }
             }
 

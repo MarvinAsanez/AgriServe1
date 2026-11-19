@@ -1,5 +1,7 @@
 package com.group7.agriserve.ui.screens
 
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+
 import android.net.Uri
 import android.util.Log
 import android.widget.Toast
@@ -47,7 +49,7 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.util.UUID
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun EditProfileScreen(
     userViewModel: UserViewModel,
@@ -82,6 +84,20 @@ fun EditProfileScreen(
             userViewModel.farmerPhone.value.ifBlank { userViewModel.phoneNumber.value }
         )
     }
+
+    var farmerType by remember {
+        mutableStateOf(userViewModel.farmerType.value.ifBlank { "Smallholder Farmer" }) }
+    var gender by remember {
+        mutableStateOf(
+            if (userViewModel.gender.value.isNotBlank()) userViewModel.gender.value
+            else if (userViewModel.sex.value.isNotBlank()) userViewModel.sex.value
+            else "Male"
+        )
+    }
+    var selectedCrops by remember {
+        mutableStateOf(userViewModel.cropsPlanted.value.toSet())
+    }
+    var farmerTypeExpanded by remember { mutableStateOf(false) }
 
     // Dropdown Data (Pre-populated with fallback so address list is always available)
     var regions by remember { mutableStateOf<List<LocationItem>>(AddressRepository.fallbackRegions) }
@@ -278,7 +294,10 @@ fun EditProfileScreen(
             newCity = selectedCityName,
             newBarangay = selectedBarangayName,
             newStreet = street.trim(),
-            newImageUri = selectedImageUri
+            newImageUri = selectedImageUri,
+            newFarmerType = farmerType,
+            newGender = gender,
+            newCropsPlanted = selectedCrops.toList()
         ) { success, error ->
             isSaving = false
             if (success) {
@@ -483,6 +502,144 @@ fun EditProfileScreen(
                 shape = RoundedCornerShape(10.dp),
                 colors = lockedFieldColors
             )
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // SECTION: FARMING DEMOGRAPHICS & CROPS
+            Text(
+                text = "Farming Demographics & Crops",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Gender Selection
+            Text(
+                text = "Gender",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                listOf("Male", "Female", "Other").forEach { opt ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.clickable { gender = opt }
+                    ) {
+                        RadioButton(selected = (gender == opt), onClick = { gender = opt })
+                        Text(opt, style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Type of Farmer Dropdown
+            val farmerTypeOptions = listOf(
+                "Smallholder Farmer",
+                "Rice Farmer",
+                "Corn Farmer",
+                "Coconut Farmer",
+                "High Value Crops Farmer",
+                "Tenant / Sharecropper",
+                "Farmworker / Laborer",
+                "Others"
+            )
+
+            ExposedDropdownMenuBox(
+                expanded = farmerTypeExpanded,
+                onExpandedChange = { farmerTypeExpanded = !farmerTypeExpanded },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                OutlinedTextField(
+                    value = farmerType,
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Type of Farmer") },
+                    leadingIcon = { Icon(Icons.Default.Agriculture, contentDescription = null) },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = farmerTypeExpanded) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                    shape = RoundedCornerShape(10.dp)
+                )
+                ExposedDropdownMenu(
+                    expanded = farmerTypeExpanded,
+                    onDismissRequest = { farmerTypeExpanded = false }
+                ) {
+                    farmerTypeOptions.forEach { opt ->
+                        DropdownMenuItem(
+                            text = { Text(opt) },
+                            onClick = {
+                                farmerType = opt
+                                farmerTypeExpanded = false
+                            }
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // What crops are they planting? (Multi-select)
+            Text(
+                text = "What crops are you planting? (Multi-select)",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = "Select all crop types currently in your fields or production:",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+
+            val cropOptions = listOf("Coconut", "High Value Crops", "Rice", "Corn", "Abacca", "Others")
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                cropOptions.forEach { crop ->
+                    val isSelected = selectedCrops.contains(crop)
+                    FilterChip(
+                        selected = isSelected,
+                        onClick = {
+                            selectedCrops = if (isSelected) {
+                                selectedCrops - crop
+                            } else {
+                                selectedCrops + crop
+                            }
+                        },
+                        label = {
+                            val emoji = when (crop) {
+                                "Coconut" -> "🥥 "
+                                "High Value Crops" -> "🥬 "
+                                "Rice" -> "🌾 "
+                                "Corn" -> "🌽 "
+                                "Abacca" -> "🌿 "
+                                else -> "📦 "
+                            }
+                            Text("$emoji$crop")
+                        },
+                        leadingIcon = if (isSelected) {
+                            {
+                                Icon(
+                                    imageVector = Icons.Default.Check,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(FilterChipDefaults.IconSize)
+                                )
+                            }
+                        } else null
+                    )
+                }
+            }
 
             Spacer(modifier = Modifier.height(24.dp))
 

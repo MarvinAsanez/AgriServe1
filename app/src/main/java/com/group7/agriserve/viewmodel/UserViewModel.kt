@@ -60,6 +60,15 @@ class UserViewModel : ViewModel() {
     var sex = mutableStateOf("Male")
         private set
 
+    var gender = mutableStateOf("Male")
+        private set
+
+    var farmerType = mutableStateOf("Smallholder Farmer")
+        private set
+
+    var cropsPlanted = mutableStateOf<List<String>>(emptyList())
+        private set
+
     var birthdate = mutableStateOf("")
         private set
 
@@ -248,8 +257,27 @@ class UserViewModel : ViewModel() {
         middleName.value = mName
         lastName.value = lName
         extensionName.value = ext
-        sex.value = (pInfo?.get("sex") as? String) ?: document.getString("sex") ?: "Male"
+        val resolvedSex = (pInfo?.get("gender") as? String)
+            ?: (pInfo?.get("sex") as? String)
+            ?: document.getString("gender")
+            ?: document.getString("sex")
+            ?: "Male"
+        sex.value = resolvedSex
+        gender.value = resolvedSex
         birthdate.value = (pInfo?.get("birthdate") as? String) ?: document.getString("birthdate") ?: ""
+
+        val resolvedFarmerType = (pInfo?.get("farmerType") as? String)
+            ?: (pInfo?.get("typeOfFarmer") as? String)
+            ?: document.getString("farmerType")
+            ?: document.getString("typeOfFarmer")
+            ?: "Smallholder Farmer"
+        farmerType.value = resolvedFarmerType
+
+        val rawCrops = (document.get("cropsPlanted") as? List<*>)
+            ?: (document.get("crops") as? List<*>)
+            ?: (pInfo?.get("cropsPlanted") as? List<*>)
+            ?: (pInfo?.get("crops") as? List<*>)
+        cropsPlanted.value = rawCrops?.filterIsInstance<String>() ?: emptyList()
 
         phoneNumber.value = (cInfo?.get("phoneNumber") as? String) ?: document.getString("phone") ?: ""
         farmerPhone.value = phoneNumber.value
@@ -784,6 +812,9 @@ class UserViewModel : ViewModel() {
         extensionNameInput: String,
         sexInput: String,
         birthdateInput: String,
+        farmerTypeInput: String = "Smallholder Farmer",
+        genderInput: String = "Male",
+        cropsPlantedInput: List<String> = emptyList(),
         phoneInput: String,
         gmailInput: String,
         rsbsaNumberInput: String = "",
@@ -859,10 +890,21 @@ class UserViewModel : ViewModel() {
                         "middleName" to middleNameInput.trim().ifEmpty { null },
                         "lastName" to lastNameInput.trim(),
                         "extensionName" to extensionNameInput.trim().ifEmpty { null },
-                        "sex" to sexInput,
+                        "sex" to (if (genderInput.isNotBlank()) genderInput else sexInput),
+                        "gender" to (if (genderInput.isNotBlank()) genderInput else sexInput),
+                        "farmerType" to farmerTypeInput.trim(),
+                        "typeOfFarmer" to farmerTypeInput.trim(),
+                        "cropsPlanted" to cropsPlantedInput,
+                        "crops" to cropsPlantedInput,
                         "birthdate" to birthdateInput,
                         "rsbsaNumber" to rsbsaNumberInput.trim()
                     ),
+                    "gender" to (if (genderInput.isNotBlank()) genderInput else sexInput),
+                    "sex" to (if (genderInput.isNotBlank()) genderInput else sexInput),
+                    "farmerType" to farmerTypeInput.trim(),
+                    "typeOfFarmer" to farmerTypeInput.trim(),
+                    "cropsPlanted" to cropsPlantedInput,
+                    "crops" to cropsPlantedInput,
                     "contactInfo" to hashMapOf(
                         "phoneNumber" to phoneInput.trim(),
                         "gmail" to gmailInput.trim().lowercase()
@@ -953,6 +995,11 @@ class UserViewModel : ViewModel() {
 
                         farmerStatus.value = "pending"
                         farmerRole.value = "guest_farmer"
+                        val finalGender = if (genderInput.isNotBlank()) genderInput else sexInput
+                        gender.value = finalGender
+                        sex.value = finalGender
+                        farmerType.value = farmerTypeInput.trim()
+                        cropsPlanted.value = cropsPlantedInput
                         rsbsaNumber.value = rsbsaNumberInput.trim()
                         street.value = zoneInput.trim()
                         barangay.value = barangayInput.trim()
@@ -1177,6 +1224,9 @@ class UserViewModel : ViewModel() {
         extensionNameInput: String,
         sexInput: String,
         birthdateInput: String,
+        farmerTypeInput: String = "Smallholder Farmer",
+        genderInput: String = "Male",
+        cropsPlantedInput: List<String> = emptyList(),
         phoneInput: String,
         gmailInput: String,
         rsbsaNumberInput: String = "",
@@ -1197,16 +1247,28 @@ class UserViewModel : ViewModel() {
             val nameParts = listOf(firstNameInput.trim(), middleNameInput.trim(), lastNameInput.trim(), extensionNameInput.trim()).filter { it.isNotBlank() }
             val formattedFullName = nameParts.joinToString(" ")
 
+            val finalResubmitGender = if (genderInput.isNotBlank()) genderInput else sexInput
             val updates = hashMapOf<String, Any>(
                 "personalInfo" to hashMapOf(
                     "firstName" to firstNameInput.trim(),
                     "middleName" to middleNameInput.trim().ifEmpty { null },
                     "lastName" to lastNameInput.trim(),
                     "extensionName" to extensionNameInput.trim().ifEmpty { null },
-                    "sex" to sexInput,
+                    "sex" to finalResubmitGender,
+                    "gender" to finalResubmitGender,
+                    "farmerType" to farmerTypeInput.trim(),
+                    "typeOfFarmer" to farmerTypeInput.trim(),
+                    "cropsPlanted" to cropsPlantedInput,
+                    "crops" to cropsPlantedInput,
                     "birthdate" to birthdateInput,
                     "rsbsaNumber" to rsbsaNumberInput.trim()
                 ),
+                "gender" to finalResubmitGender,
+                "sex" to finalResubmitGender,
+                "farmerType" to farmerTypeInput.trim(),
+                "typeOfFarmer" to farmerTypeInput.trim(),
+                "cropsPlanted" to cropsPlantedInput,
+                "crops" to cropsPlantedInput,
                 "contactInfo" to hashMapOf(
                     "phoneNumber" to phoneInput.trim(),
                     "gmail" to gmailInput.trim().lowercase()
@@ -1268,6 +1330,10 @@ class UserViewModel : ViewModel() {
                     validIdUrl.value = idFrontUrl
                     validIdBackUrl.value = idBackUrl
                     farmerStatus.value = "pending"
+                    gender.value = finalResubmitGender
+                    sex.value = finalResubmitGender
+                    farmerType.value = farmerTypeInput.trim()
+                    cropsPlanted.value = cropsPlantedInput
                     rsbsaNumber.value = rsbsaNumberInput.trim()
                     street.value = zoneInput.trim()
                     barangay.value = barangayInput.trim()
@@ -1464,6 +1530,9 @@ class UserViewModel : ViewModel() {
         newImageUri: Uri?,
         faceMatchScore: Int? = null,
         liveFaceBitmap: Bitmap? = null,
+        newFarmerType: String? = null,
+        newGender: String? = null,
+        newCropsPlanted: List<String>? = null,
         onComplete: (Boolean, String?) -> Unit
     ) {
         val targetUid = farmerDocId.value.ifBlank {
@@ -1498,6 +1567,25 @@ class UserViewModel : ViewModel() {
             "lastProfileUpdate" to Timestamp.now()
         )
 
+        if (!newFarmerType.isNullOrBlank()) {
+            updates["farmerType"] = newFarmerType.trim()
+            updates["typeOfFarmer"] = newFarmerType.trim()
+            updates["personalInfo.farmerType"] = newFarmerType.trim()
+            updates["personalInfo.typeOfFarmer"] = newFarmerType.trim()
+        }
+        if (!newGender.isNullOrBlank()) {
+            updates["gender"] = newGender.trim()
+            updates["sex"] = newGender.trim()
+            updates["personalInfo.gender"] = newGender.trim()
+            updates["personalInfo.sex"] = newGender.trim()
+        }
+        if (newCropsPlanted != null) {
+            updates["cropsPlanted"] = newCropsPlanted
+            updates["crops"] = newCropsPlanted
+            updates["personalInfo.cropsPlanted"] = newCropsPlanted
+            updates["personalInfo.crops"] = newCropsPlanted
+        }
+
         if (faceMatchScore != null) {
             updates["hasFaceVerified"] = true
             updates["ownerBiometricallyVerified"] = true
@@ -1525,6 +1613,16 @@ class UserViewModel : ViewModel() {
                     city.value = newCity
                     barangay.value = newBarangay
                     street.value = newStreet
+                    if (!newFarmerType.isNullOrBlank()) {
+                        farmerType.value = newFarmerType.trim()
+                    }
+                    if (!newGender.isNullOrBlank()) {
+                        gender.value = newGender.trim()
+                        sex.value = newGender.trim()
+                    }
+                    if (newCropsPlanted != null) {
+                        cropsPlanted.value = newCropsPlanted
+                    }
                     onComplete(true, null)
                 }
                 .addOnFailureListener { err ->
@@ -1586,6 +1684,9 @@ class UserViewModel : ViewModel() {
         newBarangay: String,
         newStreet: String,
         newImageUri: Uri?, 
+        newFarmerType: String? = null,
+        newGender: String? = null,
+        newCropsPlanted: List<String>? = null,
         onComplete: (Boolean, String?) -> Unit
     ) {
         updateProfile(
@@ -1599,6 +1700,9 @@ class UserViewModel : ViewModel() {
             newImageUri = newImageUri,
             faceMatchScore = null,
             liveFaceBitmap = null,
+            newFarmerType = newFarmerType,
+            newGender = newGender,
+            newCropsPlanted = newCropsPlanted,
             onComplete = onComplete
         )
     }
