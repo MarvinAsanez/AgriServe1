@@ -42,13 +42,7 @@ import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
-import com.google.firebase.auth.FacebookAuthProvider
 import com.google.firebase.auth.OAuthProvider
-import com.facebook.CallbackManager
-import com.facebook.FacebookCallback
-import com.facebook.FacebookException
-import com.facebook.login.LoginManager
-import com.facebook.login.LoginResult
 import androidx.compose.ui.res.painterResource
 import com.group7.agriserve.R
 import com.google.firebase.firestore.DocumentSnapshot
@@ -263,48 +257,7 @@ fun VerificationGateScreen(
         }
     }
 
-    // Modern Facebook Activity Result Contract & Callback
-    val callbackManager = remember { CallbackManager.Factory.create() }
 
-    val facebookLauncher = rememberLauncherForActivityResult(
-        contract = LoginManager.getInstance().createLogInActivityResultContract(callbackManager, null)
-    ) {
-        // Handled via callbackManager
-    }
-
-    DisposableEffect(Unit) {
-        LoginManager.getInstance().registerCallback(
-            callbackManager,
-            object : FacebookCallback<LoginResult> {
-                override fun onSuccess(result: LoginResult) {
-                    val credential = FacebookAuthProvider.getCredential(result.accessToken.token)
-                    auth.signInWithCredential(credential)
-                        .addOnCompleteListener { task ->
-                            if (task.isSuccessful) {
-                                val user = auth.currentUser
-                                val resolvedEmail = user?.email ?: "${user?.uid}@agriserve.local"
-                                lookupAndBindGoogleAccount(resolvedEmail)
-                            } else {
-                                isLoading = false
-                                errorMessage = "Facebook Sign-In failed: ${task.exception?.message}"
-                            }
-                        }
-                }
-
-                override fun onCancel() {
-                    isLoading = false
-                }
-
-                override fun onError(error: FacebookException) {
-                    isLoading = false
-                    errorMessage = "Facebook error: ${error.message}"
-                }
-            }
-        )
-        onDispose {
-            LoginManager.getInstance().unregisterCallback(callbackManager)
-        }
-    }
 
     // Trigger 6-digit OTP verification for Google account sign-in
     fun startGoogleOtpVerification(rawEmail: String) {
@@ -575,16 +528,45 @@ fun VerificationGateScreen(
         }
     }
 
-    // Facebook Sign-In with Facebook SDK and Firebase Authentication
+    // Facebook Sign-In via Firebase Auth OAuthProvider
     fun signInWithFacebook() {
         if (!NetworkUtils.isOnline(context)) {
             Toast.makeText(context, "Internet connection required to authenticate.", Toast.LENGTH_SHORT).show()
             return
         }
+        val activity = context.findActivity()
+        if (activity == null) {
+            errorMessage = "Unable to locate host activity for Facebook Sign-In."
+            return
+        }
         try {
             isLoading = true
             errorMessage = null
-            facebookLauncher.launch(listOf("email", "public_profile"))
+            val provider = OAuthProvider.newBuilder("facebook.com")
+            provider.scopes = listOf("email", "public_profile")
+
+            val pendingResult = auth.pendingAuthResult
+            if (pendingResult != null) {
+                pendingResult.addOnSuccessListener { authResult ->
+                    val user = authResult.user
+                    val resolvedEmail = user?.email ?: "${user?.uid}@agriserve.local"
+                    lookupAndBindGoogleAccount(resolvedEmail)
+                }.addOnFailureListener { e ->
+                    isLoading = false
+                    errorMessage = "Facebook Sign-In failed: ${e.message}"
+                }
+            } else {
+                auth.startActivityForSignInWithProvider(activity, provider.build())
+                    .addOnSuccessListener { authResult ->
+                        val user = authResult.user
+                        val resolvedEmail = user?.email ?: "${user?.uid}@agriserve.local"
+                        lookupAndBindGoogleAccount(resolvedEmail)
+                    }
+                    .addOnFailureListener { e ->
+                        isLoading = false
+                        errorMessage = "Facebook Sign-In failed: ${e.message}"
+                    }
+            }
         } catch (e: Exception) {
             isLoading = false
             errorMessage = "Facebook launch error: ${e.message}"

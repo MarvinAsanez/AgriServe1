@@ -18,14 +18,8 @@ import androidx.credentials.CredentialManager
 import androidx.credentials.CustomCredential
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialCancellationException
-import com.facebook.CallbackManager
-import com.facebook.FacebookCallback
-import com.facebook.FacebookException
-import com.facebook.login.LoginManager
-import com.facebook.login.LoginResult
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
-import com.google.firebase.auth.FacebookAuthProvider
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GoogleAuthProvider
@@ -56,8 +50,6 @@ fun LoginScreen(
     val auth = remember { FirebaseAuth.getInstance() }
     val coroutineScope = rememberCoroutineScope()
     val localContext = LocalContext.current
-
-    val callbackManager = remember { CallbackManager.Factory.create() }
 
     fun handleSuccessfulAuth(user: FirebaseUser?, fallbackEmail: String = "") {
         if (user == null) {
@@ -110,51 +102,6 @@ fun LoginScreen(
             }
 
         onLoginClick()
-    }
-
-    // Modern ActivityResultContract for Facebook Login in Compose
-    val facebookLauncher = rememberLauncherForActivityResult(
-        contract = LoginManager.getInstance().createLogInActivityResultContract(callbackManager, null)
-    ) {
-        // Handled via callbackManager
-    }
-
-    DisposableEffect(Unit) {
-        LoginManager.getInstance().registerCallback(
-            callbackManager,
-            object : FacebookCallback<LoginResult> {
-                override fun onSuccess(result: LoginResult) {
-                    val credential = FacebookAuthProvider.getCredential(result.accessToken.token)
-                    auth.signInWithCredential(credential)
-                        .addOnCompleteListener { task ->
-                            if (task.isSuccessful) {
-                                handleSuccessfulAuth(auth.currentUser)
-                            } else {
-                                Toast.makeText(
-                                    localContext,
-                                    "Facebook Sign-In to Firebase failed: ${task.exception?.message}",
-                                    Toast.LENGTH_LONG
-                                ).show()
-                            }
-                        }
-                }
-
-                override fun onCancel() {
-                    // User dismissed Facebook login
-                }
-
-                override fun onError(error: FacebookException) {
-                    Toast.makeText(
-                        localContext,
-                        "Facebook error: ${error.message}",
-                        Toast.LENGTH_LONG
-                    ).show()
-                }
-            }
-        )
-        onDispose {
-            LoginManager.getInstance().unregisterCallback(callbackManager)
-        }
     }
 
     AndroidView(
@@ -264,15 +211,39 @@ fun LoginScreen(
                 }
             }
 
-            // Handle Continue with Facebook (via Facebook Login SDK + Firebase Auth)
+            // Handle Continue with Facebook (via Firebase Auth OAuthProvider)
             binding.btnFacebookLogin.setOnClickListener {
                 if (!NetworkUtils.isOnline(context)) {
                     Toast.makeText(context, "Internet connection required to log in.", Toast.LENGTH_SHORT).show()
                     return@setOnClickListener
                 }
 
+                val activity = context.findActivity()
+                if (activity == null) {
+                    Toast.makeText(context, "Unable to find host activity for Facebook Sign-In.", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+
                 try {
-                    facebookLauncher.launch(listOf("email", "public_profile"))
+                    val provider = OAuthProvider.newBuilder("facebook.com")
+                    provider.scopes = listOf("email", "public_profile")
+
+                    val pendingResult = auth.pendingAuthResult
+                    if (pendingResult != null) {
+                        pendingResult.addOnSuccessListener { authResult ->
+                            handleSuccessfulAuth(authResult.user)
+                        }.addOnFailureListener { e ->
+                            Toast.makeText(context, "Facebook Sign-In failed: ${e.message}", Toast.LENGTH_LONG).show()
+                        }
+                    } else {
+                        auth.startActivityForSignInWithProvider(activity, provider.build())
+                            .addOnSuccessListener { authResult ->
+                                handleSuccessfulAuth(authResult.user)
+                            }
+                            .addOnFailureListener { e ->
+                                Toast.makeText(context, "Facebook Sign-In failed: ${e.message}", Toast.LENGTH_LONG).show()
+                            }
+                    }
                 } catch (e: Exception) {
                     Toast.makeText(context, "Facebook launch error: ${e.message}", Toast.LENGTH_LONG).show()
                 }
