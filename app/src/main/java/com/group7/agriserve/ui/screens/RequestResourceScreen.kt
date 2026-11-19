@@ -13,6 +13,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -32,17 +33,21 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.FileProvider
 import coil.compose.AsyncImage
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
+import com.group7.agriserve.R
 import com.group7.agriserve.data.model.InventoryItem
 import com.group7.agriserve.util.NetworkUtils
 import com.group7.agriserve.util.SessionManager
@@ -51,6 +56,8 @@ import java.io.ByteArrayOutputStream
 import java.io.File
 import java.util.Locale
 import java.util.UUID
+import kotlin.math.ceil
+import kotlin.math.max
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -90,6 +97,7 @@ fun RequestResourceScreen(
     var seasonDropdownExpanded by remember { mutableStateOf(false) }
     var isSubmitting by remember { mutableStateOf(false) }
     var showSuccessDialog by remember { mutableStateOf(false) }
+    var showAssistantDialog by remember { mutableStateOf(false) }
 
     // Tagged farm data
     var farmName by remember { mutableStateOf<String?>(null) }
@@ -250,6 +258,30 @@ fun RequestResourceScreen(
                         )
                     }
                 },
+                actions = {
+                    FilledTonalButton(
+                        onClick = { showAssistantDialog = true },
+                        colors = ButtonDefaults.filledTonalButtonColors(
+                            containerColor = Color(0xFFE8F5E9),
+                            contentColor = Color(0xFF1B5E20)
+                        ),
+                        shape = RoundedCornerShape(20.dp),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.AutoAwesome,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                            tint = Color(0xFF2E7D32)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "Assistant",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.sp
+                        )
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface
                 )
@@ -267,6 +299,9 @@ fun RequestResourceScreen(
         ) {
             // 1. OFFICIAL DA SUBSIDY OVERVIEW BANNER
             DaSubsidyBanner()
+
+            // 1.5. SMART DA REQUEST ASSISTANT BANNER
+            RequestAssistantBanner(onClick = { showAssistantDialog = true })
 
             // 2. SECTION 1: FARMER & RSBSA IDENTIFICATION
             FarmerCredentialsCard(
@@ -538,6 +573,26 @@ fun RequestResourceScreen(
                 ) {
                     Text("View My Requests")
                 }
+            }
+        )
+    }
+
+    if (showAssistantDialog) {
+        RequestAssistantDialog(
+            userViewModel = userViewModel,
+            availableInventory = availableInventory,
+            currentFarmSize = farmSize,
+            onDismiss = { showAssistantDialog = false },
+            onApplyRecommendation = { recItem, recCat, recQty, recUnit, recSize, recPurpose, recDesc ->
+                itemName = recItem
+                selectedCategory = recCat
+                quantity = recQty
+                selectedUnit = recUnit
+                farmSize = recSize
+                selectedPurpose = recPurpose
+                description = recDesc
+                showAssistantDialog = false
+                Toast.makeText(context, context.getString(R.string.assistant_applied_toast), Toast.LENGTH_LONG).show()
             }
         )
     }
@@ -1222,6 +1277,794 @@ fun SectionHeader(
                 text = subtitle,
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+/**
+ * ====================================================================
+ * 8. SMART REQUEST ASSISTANT FEATURE (FARMER SIDE)
+ * ====================================================================
+ */
+
+@Composable
+fun RequestAssistantBanner(onClick: () -> Unit) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color(0xFFF1F8E9)
+        ),
+        border = BorderStroke(1.dp, Color(0xFFAED581))
+    ) {
+        Row(
+            modifier = Modifier.padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Surface(
+                shape = CircleShape,
+                color = Color(0xFF2E7D32),
+                modifier = Modifier.size(42.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Default.AutoAwesome,
+                        contentDescription = null,
+                        tint = Color(0xFFFFD54F),
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = stringResource(R.string.request_assistant_title),
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleSmall,
+                        color = Color(0xFF1B5E20)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Surface(
+                        color = Color(0xFF2E7D32),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text(
+                            text = "SMART AID",
+                            color = Color.White,
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = stringResource(R.string.request_assistant_banner),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color(0xFF33691E),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+            Spacer(modifier = Modifier.width(6.dp))
+            Surface(
+                shape = CircleShape,
+                color = Color(0xFFDCEDC8),
+                modifier = Modifier.size(32.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Default.ArrowForward,
+                        contentDescription = "Open Assistant",
+                        tint = Color(0xFF2E7D32),
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+data class AssistantRecommendation(
+    val item: String,
+    val category: String,
+    val qty: String,
+    val unit: String,
+    val purpose: String,
+    val desc: String,
+    val note: String
+)
+
+@Composable
+fun RequestAssistantDialog(
+    userViewModel: UserViewModel,
+    availableInventory: List<InventoryItem>,
+    currentFarmSize: String,
+    onDismiss: () -> Unit,
+    onApplyRecommendation: (
+        itemName: String,
+        category: String,
+        quantity: String,
+        unit: String,
+        farmSize: String,
+        purpose: String,
+        description: String
+    ) -> Unit
+) {
+    val farmerCrops = userViewModel.cropsPlanted.value
+    val primaryCropCandidate = farmerCrops.firstOrNull() ?: "Rice"
+
+    var selectedCrop by remember {
+        mutableStateOf(
+            when {
+                primaryCropCandidate.contains("Corn", ignoreCase = true) -> "Corn"
+                primaryCropCandidate.contains("Coconut", ignoreCase = true) -> "Coconut"
+                primaryCropCandidate.contains("High Value", ignoreCase = true) || primaryCropCandidate.contains("Vegetable", ignoreCase = true) -> "High Value Crops"
+                primaryCropCandidate.contains("Abacca", ignoreCase = true) || primaryCropCandidate.contains("Abaca", ignoreCase = true) -> "Abacca"
+                else -> "Rice"
+            }
+        )
+    }
+
+    var hectaresInput by remember {
+        mutableStateOf(currentFarmSize.ifBlank { "1.0" })
+    }
+
+    var selectedStage by remember {
+        mutableStateOf("Planting / Land Preparation")
+    }
+
+    var selectedTab by remember { mutableIntStateOf(0) }
+
+    val cropsList = listOf("Rice", "Corn", "Coconut", "High Value Crops", "Abacca", "Others")
+    val stagesList = listOf(
+        "Planting / Land Preparation",
+        "Growth / Fertilization",
+        "Pest & Disease Outbreak",
+        "Post-Calamity / Flood Recovery"
+    )
+
+    // Calculate numeric land area
+    val hectares = (hectaresInput.toDoubleOrNull() ?: 1.0).coerceIn(0.1, 50.0)
+
+    // Compute dynamic DA agronomic recommendation
+    val rec = remember(selectedCrop, hectares, selectedStage) {
+        when (selectedCrop) {
+            "Rice" -> {
+                when (selectedStage) {
+                    "Growth / Fertilization" -> {
+                        val qty = max(1, ceil(hectares * 4.0).toInt())
+                        AssistantRecommendation(
+                            item = "Complete Fertilizer (14-14-14)",
+                            category = "Fertilizer",
+                            qty = qty.toString(),
+                            unit = "bags",
+                            purpose = "Fertilizer Subsidy",
+                            desc = "DA Standard Rice Nutrition: $qty bags Complete 14-14-14 for $hectares ha (4 bags/ha DA standard rate).",
+                            note = "DA Region 5 Guideline: Apply 4 bags Complete 14-14-14 basal + 2 bags Urea at active tillering for maximum grain yield."
+                        )
+                    }
+                    "Pest & Disease Outbreak" -> {
+                        val qty = max(1, ceil(hectares * 2.0).toInt())
+                        AssistantRecommendation(
+                            item = "Bio-Organic Microbial Fertilizer",
+                            category = "Pesticide",
+                            qty = qty.toString(),
+                            unit = "bottles",
+                            purpose = "Pest Infestation Recovery",
+                            desc = "Emergency DA pest control allocation: $qty units for $hectares ha rice plot.",
+                            note = "Apply early morning to suppress stem borer and bacterial blight. Coordinate with Barangay Agri Technologist."
+                        )
+                    }
+                    "Post-Calamity / Flood Recovery" -> {
+                        val qty = max(1, ceil(hectares * 2.0).toInt())
+                        AssistantRecommendation(
+                            item = "Certified Inbred Palay Seeds (RC 222)",
+                            category = "Seeds",
+                            qty = qty.toString(),
+                            unit = "sacks",
+                            purpose = "Calamity Relief",
+                            desc = "Emergency DA Quick Response Replanting: $qty sacks certified inbred palay seeds for $hectares ha.",
+                            note = "Submergence and pest-tolerant inbred seeds allocated to restore typhoon/flood damaged rice fields."
+                        )
+                    }
+                    else -> { // Planting
+                        val qty = max(1, ceil(hectares * 2.0).toInt())
+                        AssistantRecommendation(
+                            item = "Certified Inbred Palay Seeds (RC 222)",
+                            category = "Seeds",
+                            qty = qty.toString(),
+                            unit = "sacks",
+                            purpose = "Regular Season Planting",
+                            desc = "DA Rice Program certified seeds: $qty sacks for $hectares ha (2 sacks/ha standard DA inbred allocation).",
+                            note = "Philippine DA Standard: 2 sacks (40kg) per hectare for certified inbred varieties, or 1 bag (15-20kg) for hybrid seeds."
+                        )
+                    }
+                }
+            }
+            "Corn" -> {
+                when (selectedStage) {
+                    "Growth / Fertilization" -> {
+                        val qty = max(1, ceil(hectares * 3.0).toInt())
+                        AssistantRecommendation(
+                            item = "Complete Fertilizer (14-14-14)",
+                            category = "Fertilizer",
+                            qty = qty.toString(),
+                            unit = "bags",
+                            purpose = "Fertilizer Subsidy",
+                            desc = "DA Corn Program Fertilizer: $qty bags Complete 14-14-14 for $hectares ha.",
+                            note = "DA rate: 3 bags Complete 14-14-14 at planting followed by 2 bags Urea as side-dress at 30 days."
+                        )
+                    }
+                    "Pest & Disease Outbreak" -> {
+                        AssistantRecommendation(
+                            item = "Knapsack Power Sprayer 16L",
+                            category = "Machinery",
+                            qty = "1",
+                            unit = "units",
+                            purpose = "Pest Management Equipment",
+                            desc = "Protective knapsack sprayer equipment for Fall Armyworm (FAW) mitigation on $hectares ha corn.",
+                            note = "Target Fall Armyworm whorl infestation promptly using approved biocontrol agents."
+                        )
+                    }
+                    "Post-Calamity / Flood Recovery" -> {
+                        val qty = max(1, ceil(hectares * 1.0).toInt())
+                        AssistantRecommendation(
+                            item = "White Corn Seeds (IPB Var 6)",
+                            category = "Seeds",
+                            qty = qty.toString(),
+                            unit = "sacks",
+                            purpose = "Calamity Relief",
+                            desc = "Post-calamity emergency corn seeds: $qty bag(s) for $hectares ha replanting.",
+                            note = "Early-maturing certified corn seed provision for fast post-calamity crop cycle turnaround."
+                        )
+                    }
+                    else -> {
+                        val qty = max(1, ceil(hectares * 1.0).toInt())
+                        AssistantRecommendation(
+                            item = "White Corn Seeds (IPB Var 6)",
+                            category = "Seeds",
+                            qty = qty.toString(),
+                            unit = "sacks",
+                            purpose = "Regular Season Planting",
+                            desc = "DA National Corn Program: $qty bag(s) certified corn seeds for $hectares ha.",
+                            note = "Standard DA Corn quota: 1 bag (18-20kg) per hectare for certified/hybrid corn."
+                        )
+                    }
+                }
+            }
+            "Coconut" -> {
+                when (selectedStage) {
+                    "Pest & Disease Outbreak" -> {
+                        AssistantRecommendation(
+                            item = "Bio-Organic Microbial Fertilizer",
+                            category = "Pesticide",
+                            qty = "2",
+                            unit = "bottles",
+                            purpose = "Coconut Pest Control",
+                            desc = "PCA/DA biological pest control kit for Coconut Scale Insect and Rhinoceros Beetle on $hectares ha.",
+                            note = "Recommended by Philippine Coconut Authority (PCA) for ecological scale insect management."
+                        )
+                    }
+                    else -> {
+                        val qty = max(1, ceil(hectares * 2.0).toInt())
+                        AssistantRecommendation(
+                            item = "Complete Fertilizer (14-14-14)",
+                            category = "Fertilizer",
+                            qty = qty.toString(),
+                            unit = "bags",
+                            purpose = "Coconut Fertilization",
+                            desc = "DA/PCA Coconut Salt & Fertilizer Package: $qty bags for $hectares ha coconut plantation.",
+                            note = "PCA Guideline: Apply fertilizer or agricultural salt 2kg per tree along canopy drip line twice annually to increase nut weight."
+                        )
+                    }
+                }
+            }
+            "High Value Crops" -> {
+                when (selectedStage) {
+                    "Growth / Fertilization" -> {
+                        val qty = max(1, ceil(hectares * 3.0).toInt())
+                        AssistantRecommendation(
+                            item = "Bio-Organic Microbial Fertilizer",
+                            category = "Fertilizer",
+                            qty = qty.toString(),
+                            unit = "bags",
+                            purpose = "Organic Vegetable Production",
+                            desc = "DA HVCDP Organic fertilizer package: $qty bags for $hectares ha vegetable plot.",
+                            note = "High Value Crops Development Program (HVCDP) soil conditioner to boost organic matter and moisture retention."
+                        )
+                    }
+                    else -> {
+                        val qty = max(2, ceil(hectares * 5.0).toInt())
+                        AssistantRecommendation(
+                            item = "Vegetable Seed Kit (Pinakbet / Lowland)",
+                            category = "Seeds",
+                            qty = qty.toString(),
+                            unit = "packets",
+                            purpose = "High Value Crop Production",
+                            desc = "DA HVCDP vegetable seed starter kit: $qty packets for $hectares ha diversified farming.",
+                            note = "Includes premium certified seeds of tomato, eggplant, ampalaya, string beans, and squash."
+                        )
+                    }
+                }
+            }
+            "Abacca" -> {
+                val qty = max(100, ceil(hectares * 250.0).toInt())
+                AssistantRecommendation(
+                    item = "Disease-Free Abaca Tissue Plantlets",
+                    category = "Crops",
+                    qty = qty.toString(),
+                    unit = "pieces",
+                    purpose = "Abaca Fiber Rehabilitation",
+                    desc = "PhilFIDA/DA disease-resilient abaca plantlets: $qty pieces for $hectares ha.",
+                    note = "Certified bunchy-top resistant tissue-cultured plantlets from PhilFIDA accredited nurseries."
+                )
+            }
+            else -> { // Others
+                val qty = max(1, ceil(hectares * 2.0).toInt())
+                AssistantRecommendation(
+                    item = "Bio-Organic Microbial Fertilizer",
+                    category = "Fertilizer",
+                    qty = qty.toString(),
+                    unit = "bags",
+                    purpose = "Soil Conditioning & Crop Nutrition",
+                    desc = "DA Multi-Crop Soil Nutrition: $qty bags for $hectares ha plot.",
+                    note = "General DA fertility package suitable for mixed crops, rootcrops, and orchard trees."
+                )
+            }
+        }
+    }
+
+    // Match recommendation with warehouse inventory
+    val matchedInv = remember(rec.item, rec.category, availableInventory) {
+        availableInventory.find { inv ->
+            inv.item_name.contains(rec.item.split(" ").firstOrNull() ?: "", ignoreCase = true) ||
+            inv.category.equals(rec.category, ignoreCase = true)
+        }
+    }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth(0.94f)
+                .fillMaxHeight(0.90f),
+            shape = RoundedCornerShape(24.dp),
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 6.dp
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(20.dp)
+            ) {
+                // Header with icon and close button
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Surface(
+                        shape = CircleShape,
+                        color = Color(0xFF2E7D32),
+                        modifier = Modifier.size(40.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Default.AutoAwesome,
+                                contentDescription = null,
+                                tint = Color(0xFFFFD54F),
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = stringResource(R.string.request_assistant_title),
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = stringResource(R.string.request_assistant_subtitle),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    IconButton(onClick = onDismiss) {
+                        Icon(Icons.Default.Close, contentDescription = "Close")
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Navigation Tabs
+                TabRow(
+                    selectedTabIndex = selectedTab,
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    contentColor = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.clip(RoundedCornerShape(12.dp))
+                ) {
+                    Tab(
+                        selected = selectedTab == 0,
+                        onClick = { selectedTab = 0 },
+                        text = { Text("Calculator", fontWeight = FontWeight.Bold, fontSize = 12.sp) },
+                        icon = { Icon(Icons.Default.Calculate, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                    )
+                    Tab(
+                        selected = selectedTab == 1,
+                        onClick = { selectedTab = 1 },
+                        text = { Text("DA Rules", fontWeight = FontWeight.Bold, fontSize = 12.sp) },
+                        icon = { Icon(Icons.Default.Rule, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                    )
+                    Tab(
+                        selected = selectedTab == 2,
+                        onClick = { selectedTab = 2 },
+                        text = { Text("Crop Advice", fontWeight = FontWeight.Bold, fontSize = 12.sp) },
+                        icon = { Icon(Icons.Default.Grass, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // Tab Contents
+                Box(modifier = Modifier.weight(1f)) {
+                    when (selectedTab) {
+                        0 -> {
+                            // TAB 0: CALCULATOR & RECOMMENDATION
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .verticalScroll(rememberScrollState()),
+                                verticalArrangement = Arrangement.spacedBy(14.dp)
+                            ) {
+                                // 1. Crop Selection
+                                Column {
+                                    Text(
+                                        text = "1. Select Primary Crop:",
+                                        style = MaterialTheme.typography.labelLarge,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    Row(
+                                        modifier = Modifier.horizontalScroll(rememberScrollState()),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        cropsList.forEach { crop ->
+                                            val isSelected = selectedCrop == crop
+                                            val isFarmerCrop = farmerCrops.any { it.contains(crop, ignoreCase = true) }
+                                            FilterChip(
+                                                selected = isSelected,
+                                                onClick = { selectedCrop = crop },
+                                                label = {
+                                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                                        Text(crop, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal)
+                                                        if (isFarmerCrop) {
+                                                            Spacer(modifier = Modifier.width(4.dp))
+                                                            Text("🌱", fontSize = 11.sp)
+                                                        }
+                                                    }
+                                                },
+                                                leadingIcon = if (isSelected) {
+                                                    { Icon(Icons.Default.Check, null, modifier = Modifier.size(14.dp)) }
+                                                } else null
+                                            )
+                                        }
+                                    }
+                                }
+
+                                // 2. Land Size Input
+                                Column {
+                                    Text(
+                                        text = "2. Farm Land Area (Hectares):",
+                                        style = MaterialTheme.typography.labelLarge,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    Row(
+                                        modifier = Modifier.horizontalScroll(rememberScrollState()),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        listOf("0.5", "1.0", "1.5", "2.0", "3.0", "5.0").forEach { preset ->
+                                            AssistChip(
+                                                onClick = { hectaresInput = preset },
+                                                label = { Text("$preset ha", fontWeight = if (hectaresInput == preset) FontWeight.Bold else FontWeight.Normal) },
+                                                colors = AssistChipDefaults.assistChipColors(
+                                                    containerColor = if (hectaresInput == preset) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface
+                                                )
+                                            )
+                                        }
+                                    }
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    OutlinedTextField(
+                                        value = hectaresInput,
+                                        onValueChange = { hectaresInput = it.filter { c -> c.isDigit() || c == '.' } },
+                                        label = { Text("Exact Farm Size (Hectares)") },
+                                        trailingIcon = { Text("ha  ", style = MaterialTheme.typography.bodyMedium) },
+                                        singleLine = true,
+                                        modifier = Modifier.fillMaxWidth(),
+                                        shape = RoundedCornerShape(12.dp)
+                                    )
+                                }
+
+                                // 3. Purpose / Growth Stage
+                                Column {
+                                    Text(
+                                        text = "3. Season or Farming Need:",
+                                        style = MaterialTheme.typography.labelLarge,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    Row(
+                                        modifier = Modifier.horizontalScroll(rememberScrollState()),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        stagesList.forEach { stage ->
+                                            val isSelected = selectedStage == stage
+                                            FilterChip(
+                                                selected = isSelected,
+                                                onClick = { selectedStage = stage },
+                                                label = { Text(stage, fontSize = 12.sp) }
+                                            )
+                                        }
+                                    }
+                                }
+
+                                // 4. Calculated Recommendation Card
+                                Card(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(16.dp),
+                                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF1F8E9)),
+                                    border = BorderStroke(1.5.dp, Color(0xFF81C784))
+                                ) {
+                                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(
+                                                text = "RECOMMENDED DA PACKAGE",
+                                                style = MaterialTheme.typography.labelMedium,
+                                                color = Color(0xFF2E7D32),
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                            Surface(
+                                                shape = RoundedCornerShape(12.dp),
+                                                color = Color(0xFF2E7D32)
+                                            ) {
+                                                Text(
+                                                    text = "${rec.qty} ${rec.unit}",
+                                                    color = Color.White,
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontSize = 12.sp,
+                                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                                )
+                                            }
+                                        }
+
+                                        Text(
+                                            text = rec.item,
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            color = Color(0xFF1B5E20)
+                                        )
+
+                                        Text(
+                                            text = "Category: ${rec.category} • Purpose: ${rec.purpose}",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = Color(0xFF33691E)
+                                        )
+
+                                        HorizontalDivider(color = Color(0xFFC8E6C9), thickness = 1.dp)
+
+                                        // Warehouse Stock Check
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                        ) {
+                                            if (matchedInv != null && matchedInv.quantity > 0) {
+                                                Icon(
+                                                    imageVector = Icons.Default.CheckCircle,
+                                                    contentDescription = null,
+                                                    tint = Color(0xFF2E7D32),
+                                                    modifier = Modifier.size(16.dp)
+                                                )
+                                                Text(
+                                                    text = "In Stock at Municipal Warehouse (${matchedInv.quantity} ${matchedInv.unit} available)",
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = Color(0xFF2E7D32),
+                                                    fontWeight = FontWeight.SemiBold
+                                                )
+                                            } else {
+                                                Icon(
+                                                    imageVector = Icons.Default.Inventory2,
+                                                    contentDescription = null,
+                                                    tint = Color(0xFFE65100),
+                                                    modifier = Modifier.size(16.dp)
+                                                )
+                                                Text(
+                                                    text = "Official DA Program Allocation (Prepared upon submission)",
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = Color(0xFFE65100),
+                                                    fontWeight = FontWeight.SemiBold
+                                                )
+                                            }
+                                        }
+
+                                        // Agronomic Technical Note
+                                        Surface(
+                                            shape = RoundedCornerShape(10.dp),
+                                            color = Color.White.copy(alpha = 0.85f),
+                                            border = BorderStroke(1.dp, Color(0xFFC8E6C9)),
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.padding(10.dp),
+                                                verticalAlignment = Alignment.Top,
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Info,
+                                                    contentDescription = null,
+                                                    tint = Color(0xFF2E7D32),
+                                                    modifier = Modifier.size(16.dp)
+                                                )
+                                                Text(
+                                                    text = rec.note,
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = Color(0xFF2E7D32),
+                                                    lineHeight = 16.sp
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // 5. Auto-Fill Action Button
+                                Button(
+                                    onClick = {
+                                        onApplyRecommendation(
+                                            rec.item,
+                                            rec.category,
+                                            rec.qty,
+                                            rec.unit,
+                                            String.format(Locale.US, "%.1f", hectares),
+                                            rec.purpose,
+                                            rec.desc
+                                        )
+                                    },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(52.dp),
+                                    shape = RoundedCornerShape(14.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = Color(0xFF2E7D32)
+                                    )
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.AutoAwesome,
+                                        contentDescription = null,
+                                        tint = Color(0xFFFFD54F),
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = stringResource(R.string.assistant_autofill),
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 15.sp
+                                    )
+                                }
+                            }
+                        }
+                        1 -> {
+                            // TAB 1: DA REQUIREMENTS & GUIDELINES
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .verticalScroll(rememberScrollState()),
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Text(
+                                    text = "Department of Agriculture Guidelines",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+
+                                GuidelineCard(
+                                    title = "1. RSBSA Registration Required",
+                                    description = "All government seeds, fertilizers, and subsidies require an active RSBSA (Registry System for Basic Sectors in Agriculture) reference number. Non-RSBSA farmers must first coordinate with their Barangay Agriculture committee."
+                                )
+
+                                GuidelineCard(
+                                    title = "2. Maximum Standard Allocations",
+                                    description = "• Rice: Maximum 2 sacks (40kg) of inbred seeds per hectare, or 1 bag (15-20kg) hybrid seeds per ha.\n• Fertilizer: Up to 4 bags Complete 14-14-14 and 2 bags Urea per hectare.\n• Corn: 1 bag (20kg) seeds per hectare."
+                                )
+
+                                GuidelineCard(
+                                    title = "3. Farmland Photo Proof",
+                                    description = "You must provide a clear, real-time photo of your farmland (land preparation, standing crop, or damaged area) as evidence to ensure subsidies reach legitimate farming operations."
+                                )
+
+                                GuidelineCard(
+                                    title = "4. Release & Distribution Process",
+                                    description = "Once approved by the Municipal Agriculture Officer (MAO), allocations are scheduled for release at the MAO or designated Barangay Distribution Station. Present your valid ID or RSBSA Stub upon claim."
+                                )
+                            }
+                        }
+                        2 -> {
+                            // TAB 2: CROP ADVICE & MANAGEMENT TIPS
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .verticalScroll(rememberScrollState()),
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Text(
+                                    text = "Agronomic Best Practices by Crop",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+
+                                GuidelineCard(
+                                    title = "🌾 Rice (Palay) High-Yield Strategy",
+                                    description = "For Wet Season, use certified flood/submergence tolerant varieties such as RC 222 or RC 682. Apply basal fertilizer within 14 days after transplanting (DAT) and top-dress nitrogen at panicle initiation."
+                                )
+
+                                GuidelineCard(
+                                    title = "🌽 Corn (Mais) Nutrient Timing",
+                                    description = "Apply basal Complete fertilizer during planting. Side-dress with Nitrogen (Urea) at 30-35 days after emergence when plants reach knee-high stage. Monitor regularly for Fall Armyworm (FAW)."
+                                )
+
+                                GuidelineCard(
+                                    title = "🥥 Coconut (Niyog) Salt Fertilization",
+                                    description = "Agricultural salt (NaCl) provides essential chloride that accelerates tree growth and significantly boosts copra meat thickness. Apply 2kg per bearing tree twice a year along the drip ring."
+                                )
+
+                                GuidelineCard(
+                                    title = "🥬 High Value Vegetables (HVCDP)",
+                                    description = "Use raised beds and seedling trays with carbonized rice hull (CRH) and vermicast. Practice crop rotation with leguminous crops (string beans/peanuts) to fix natural soil nitrogen."
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun GuidelineCard(title: String, description: String) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+    ) {
+        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                lineHeight = 17.sp
             )
         }
     }

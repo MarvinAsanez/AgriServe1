@@ -151,4 +151,13 @@
     <string name="emergency_precaution_hint">Pinduton para sa mga pag-iingat asin emergency hotline</string>
     <string name="da_advisories_updates">Mga Paisi asin Update kan DA</string>
     <string name="close_advisory">Isara an Paisi</string>
+
+    <!-- Request Assistant Feature -->
+    <string name="request_assistant_title">Katabang sa Pag-request kan DA</string>
+    <string name="request_assistant_subtitle">Marhay na giya sa banhi, pataba asin alokasyon</string>
+    <string name="request_assistant_banner">Kaipuhan nin tabang sa pagpili? Buksan an DA Request Assistant para sa tamang sukol nin banhi asin pataba.</string>
+    <string name="open_assistant">Buksan an Assistant</string>
+    <string name="assistant_calculate">Kalkulahon an Alokasyon kan DA</string>
+    <string name="assistant_autofill">I-apply sa Pormularyo</string>
+    <string name="assistant_applied_toast">Nalaag na sa pormularyo an suhestyon kan DA!</string>
 </resources>

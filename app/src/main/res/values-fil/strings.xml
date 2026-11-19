@@ -151,4 +151,13 @@
     <string name="emergency_precaution_hint">Pindutin para sa mga pag-iingat at emergency hotlines</string>
     <string name="da_advisories_updates">Mga Paisi at Update mula sa DA</string>
     <string name="close_advisory">Isara ang Paisi</string>
+
+    <!-- Request Assistant Feature -->
+    <string name="request_assistant_title">Katulong sa Pag-request ng DA</string>
+    <string name="request_assistant_subtitle">Matalinong rekomendasyon sa binhi, abono at quota</string>
+    <string name="request_assistant_banner">Kailangan ng tulong sa pagpili? Buksan ang DA Request Assistant para sa tamang sukat ng binhi at abono.</string>
+    <string name="open_assistant">Buksan ang Assistant</string>
+    <string name="assistant_calculate">Kalkulahin ang Alokasyon ng DA</string>
+    <string name="assistant_autofill">I-apply sa Pormularyo</string>
+    <string name="assistant_applied_toast">Nailagay na sa form ang rekomendasyon ng DA!</string>
 </resources>

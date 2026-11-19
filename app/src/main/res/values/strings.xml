@@ -156,4 +156,13 @@
     <string name="facebook_app_id">1676034210800919</string>
     <string name="facebook_client_token">108b82c96f065930e0fc26316a1843d5</string>
     <string name="fb_login_protocol_scheme">fb1676034210800919</string>
+
+    <!-- Request Assistant Feature -->
+    <string name="request_assistant_title">DA Request Assistant</string>
+    <string name="request_assistant_subtitle">Smart crop recommendations &amp; DA quota calculator</string>
+    <string name="request_assistant_banner">Need help choosing supplies? Open DA Request Assistant to calculate recommended seeds and fertilizers for your land.</string>
+    <string name="open_assistant">Open Assistant</string>
+    <string name="assistant_calculate">Calculate DA Allocation</string>
+    <string name="assistant_autofill">Apply to Request Form</string>
+    <string name="assistant_applied_toast">Request form filled with DA recommendations!</string>
 </resources>
