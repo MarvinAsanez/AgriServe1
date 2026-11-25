@@ -2,7 +2,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Platform-Android-3DDC84?style=for-the-badge&logo=android&logoColor=white" alt="Android" />
-  <img src="https://img.shields.io/badge/Version-v1.0.0-2E7D32?style=for-the-badge" alt="Version 1.0.0" />
+  <img src="https://img.shields.io/badge/Version-v2.0.0-2E7D32?style=for-the-badge" alt="Version 2.0.0" />
   <img src="https://img.shields.io/badge/Release-Stable-brightgreen?style=for-the-badge" alt="Release" />
   <img src="https://img.shields.io/badge/License-MIT-blue?style=for-the-badge" alt="License" />
 </p>
@@ -24,8 +24,9 @@ Download and install the latest signed Android APK directly onto your Android de
 </p>
 
 ### 🔗 Alternative Download Links:
-* **Direct Latest APK**: [AgriServe.apk](https://github.com/MarvinAsanez/AgriServe1/releases/latest/download/AgriServe.apk) *(~102 MB, signed & ready)*
-* **Release v1.0.0 APK**: [AgriServe-v1.0.0.apk](https://github.com/MarvinAsanez/AgriServe1/releases/download/v1.0.0/AgriServe-v1.0.0.apk)
+* **Direct Latest APK (v2.0.0)**: [AgriServe.apk](https://github.com/MarvinAsanez/AgriServe1/releases/latest/download/AgriServe.apk) *(signed & ready)*
+* **Release v2.0.0 APK**: [AgriServe-v2.0.0.apk](https://github.com/MarvinAsanez/AgriServe1/releases/download/v2.0.0/AgriServe-v2.0.0.apk)
+* **Previous Release (v1.0.0)**: [AgriServe-v1.0.0.apk](https://github.com/MarvinAsanez/AgriServe1/releases/download/v1.0.0/AgriServe-v1.0.0.apk)
 * **GitHub Releases Page**: [View All Releases & Assets](https://github.com/MarvinAsanez/AgriServe1/releases)
 
 ---
@@ -42,11 +43,18 @@ Download and install the latest signed Android APK directly onto your Android de
 
 ## ✨ Key Features
 
-* 🌐 **Tri-Language Support**:
-  * **Central Bikol** (*Bikol Sentral / Ragay*: *Paraoma, Sakahan, Kahagadan, Paisi, Patanid sa Kalamidad*)
-  * **Tagalog / Filipino** (*Magsasaka, Sakahan, Kahilingan, Ulat Panahon*)
-  * **English** (*Native*)
-  * Instant in-app language switching under Profile settings.
+* 🌐 **Real-Time Tri-Language Support & Theme Toggle**:
+  * **Central Bikol**, **Tagalog / Filipino**, and **English** with real-time switching on the Login screen and in Profile settings.
+  * Quick Dark / Light mode toggle on Login, Forgot Password, and Profile.
+
+* 🔒 **Offline-First Persistence & PIN / Fingerprint Quick Lock**:
+  * Persistent farmer session (no forced 7-day auto-logout), offline queueing with automatic sync on reconnect, and **Offline PIN & Fingerprint Lock** under **Profile → Security & Password**.
+
+* 🗺️ **Multi-Farm GPS Tagging & Corner-by-Corner Boundaries**:
+  * Tag multiple farms per farmer and draw corner-by-corner farm boundary polygons with automatic hectare calculation.
+
+* 📸 **Live-Camera Incident Reporting & PCIC Crop Insurance**:
+  * Select from your tagged farms, capture real-time camera evidence, and—once resolved by DA—download pre-filled **HVCI CAS Form No. 01** or **RC-CAS-01 Claim for Indemnity** PDFs with a step-by-step filing guide.
 
 * 🤖 **Gemini AI Customer Service Agent**:
   * In-app conversational assistant powered by Google Gemini and Firebase Cloud Functions v2.
@@ -55,10 +63,6 @@ Download and install the latest signed Android APK directly onto your Android de
 * 🚨 **Real-Time Calamity & Disaster Alerts**:
   * Urgent alert siren banner and PAGASA storm signal advisories broadcasted directly to farmers.
   * Direct emergency response hotline shortcuts.
-
-* 🗺️ **Unified Farm Mapping & GPS Tagging**:
-  * Satellite-mapped farm boundaries with GPS precision.
-  * Barangay-level farm overview and crop coverage.
 
 * 📦 **DA Subsidized Aid & Inventory**:
   * Request hybrid/inbred palay seeds, urea, complete fertilizers, and machinery.
