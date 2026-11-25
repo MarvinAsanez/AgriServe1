@@ -73,3 +73,4 @@ cd "C:\Users\Marvin\Desktop\AgriServe"
 .\gradlew.bat :app:assembleDebug --console=plain
 ```
 Ensure the build exits with `BUILD SUCCESSFUL`.
+

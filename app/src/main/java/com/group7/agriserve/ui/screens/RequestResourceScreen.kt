@@ -473,15 +473,21 @@ fun RequestResourceScreen(
                                 "timestamp" to Timestamp.now()
                             )
 
-                            firestore.collection("requests").add(requestData)
-                                .addOnSuccessListener {
-                                    isSubmitting = false
-                                    showSuccessDialog = true
-                                }
-                                .addOnFailureListener {
-                                    isSubmitting = false
-                                    showSuccessDialog = true
-                                }
+                            val addTask = firestore.collection("requests").add(requestData)
+                            if (offlineFlag || !NetworkUtils.isOnline(context)) {
+                                isSubmitting = false
+                                showSuccessDialog = true
+                            } else {
+                                addTask
+                                    .addOnSuccessListener {
+                                        isSubmitting = false
+                                        showSuccessDialog = true
+                                    }
+                                    .addOnFailureListener {
+                                        isSubmitting = false
+                                        showSuccessDialog = true
+                                    }
+                            }
                         }
 
                         if (!isOnline) {

@@ -6,7 +6,13 @@ import android.content.ContextWrapper
 import android.view.LayoutInflater
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.os.LocaleListCompat
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
@@ -20,6 +26,7 @@ import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialCancellationException
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
+import com.google.android.recaptcha.RecaptchaAction
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GoogleAuthProvider
@@ -27,6 +34,7 @@ import com.google.firebase.auth.OAuthProvider
 import com.google.firebase.firestore.FirebaseFirestore
 import com.group7.agriserve.databinding.ActivityLoginBinding
 import com.group7.agriserve.util.NetworkUtils
+import com.group7.agriserve.util.RecaptchaManager
 import com.group7.agriserve.util.SessionManager
 import com.group7.agriserve.viewmodel.UserViewModel
 import kotlinx.coroutines.launch
@@ -50,27 +58,31 @@ fun LoginScreen(
     val auth = remember { FirebaseAuth.getInstance() }
     val coroutineScope = rememberCoroutineScope()
     val localContext = LocalContext.current
+    val currentThemeMode = userViewModel?.themeMode?.value ?: SessionManager.getCachedThemeMode(localContext)
+    val isDarkThemeActive = when (currentThemeMode) {
+        "dark" -> true
+        "light" -> false
+        else -> isSystemInDarkTheme()
+    }
+    val surfaceBgColor = MaterialTheme.colorScheme.background.toArgb()
+    val cardBgColor = MaterialTheme.colorScheme.surface.toArgb()
+    val primaryTintColor = MaterialTheme.colorScheme.primary.toArgb()
+    val onSurfaceColor = MaterialTheme.colorScheme.onSurface.toArgb()
+    val onSurfaceVariantColor = MaterialTheme.colorScheme.onSurfaceVariant.toArgb()
 
-    fun handleSuccessfulAuth(user: FirebaseUser?, fallbackEmail: String = "") {
-        if (user == null) {
-            onLoginClick()
-            return
-        }
-
-        val resolvedEmail = user.email?.takeIf { it.isNotBlank() }
-            ?: fallbackEmail.takeIf { it.isNotBlank() }
-            ?: "${user.uid}@agriserve.local"
+    fun proceedFarmerLogin(db: FirebaseFirestore, user: FirebaseUser, resolvedEmail: String) {
+        userViewModel?.resetProfileState()
 
         SessionManager.saveLoginSession(
             context = localContext,
             userId = user.uid,
             email = resolvedEmail
         )
+        userViewModel?.farmerDocId?.value = user.uid
         userViewModel?.farmerEmail?.value = resolvedEmail
         userViewModel?.gmail?.value = resolvedEmail
 
         // Look up and attach farmer doc
-        val db = FirebaseFirestore.getInstance()
         db.collection("farmers")
             .whereEqualTo("contactInfo.gmail", resolvedEmail)
             .get()
@@ -104,10 +116,136 @@ fun LoginScreen(
         onLoginClick()
     }
 
+    fun handleSuccessfulAuth(user: FirebaseUser?, fallbackEmail: String = "") {
+        if (user == null) {
+            onLoginClick()
+            return
+        }
+
+        val resolvedEmail = user.email?.takeIf { it.isNotBlank() }
+            ?: fallbackEmail.takeIf { it.isNotBlank() }
+            ?: "${user.uid}@agriserve.local"
+
+        fun rejectAdminLogin() {
+            try {
+                auth.signOut()
+            } catch (_: Exception) {}
+            userViewModel?.resetProfileState()
+            SessionManager.clearSession(localContext)
+            Toast.makeText(
+                localContext,
+                "Access Denied: Admin and Super Admin accounts cannot be used in the Farmer mobile app.",
+                Toast.LENGTH_LONG
+            ).show()
+        }
+
+        if (resolvedEmail.equals("agriserve@admin.da.gov.ph", ignoreCase = true)) {
+            rejectAdminLogin()
+            return
+        }
+
+        val db = FirebaseFirestore.getInstance()
+        // Strictly verify the account is not an Admin / Super Admin before granting access
+        db.collection("admins").document(user.uid).get()
+            .addOnSuccessListener { adminDoc ->
+                if (adminDoc != null && adminDoc.exists()) {
+                    rejectAdminLogin()
+                    return@addOnSuccessListener
+                }
+
+                db.collection("users").document(user.uid).get()
+                    .addOnSuccessListener { userDoc ->
+                        val userRole = userDoc?.getString("role")?.trim()?.lowercase() ?: ""
+                        if (userRole in listOf("admin", "super admin", "super_admin", "da staff", "staff")) {
+                            rejectAdminLogin()
+                            return@addOnSuccessListener
+                        }
+
+                        proceedFarmerLogin(db, user, resolvedEmail)
+                    }
+                    .addOnFailureListener {
+                        proceedFarmerLogin(db, user, resolvedEmail)
+                    }
+            }
+            .addOnFailureListener {
+                // If admins read is denied by security rules (because non-admins cannot read other admins),
+                // check users/{uid} role before proceeding.
+                db.collection("users").document(user.uid).get()
+                    .addOnSuccessListener { userDoc ->
+                        val userRole = userDoc?.getString("role")?.trim()?.lowercase() ?: ""
+                        if (userRole in listOf("admin", "super admin", "super_admin", "da staff", "staff")) {
+                            rejectAdminLogin()
+                            return@addOnSuccessListener
+                        }
+                        proceedFarmerLogin(db, user, resolvedEmail)
+                    }
+                    .addOnFailureListener {
+                        proceedFarmerLogin(db, user, resolvedEmail)
+                    }
+            }
+    }
+
     AndroidView(
         modifier = Modifier.fillMaxSize(),
         factory = { context ->
             val binding = ActivityLoginBinding.inflate(LayoutInflater.from(context))
+
+            // Theme Toggle Icon on Upper Right
+            binding.btnThemeToggle.setOnClickListener {
+                val activeMode = userViewModel?.themeMode?.value ?: SessionManager.getCachedThemeMode(context)
+                val currentlyDark = when (activeMode) {
+                    "dark" -> true
+                    "light" -> false
+                    else -> isDarkThemeActive
+                }
+                val nextMode = if (currentlyDark) "light" else "dark"
+                SessionManager.saveThemeMode(context, nextMode)
+                userViewModel?.updateThemeMode(nextMode, context)
+            }
+
+            // Language Selector Button on Login Page
+            fun currentLangCode(): String {
+                val active = userViewModel?.selectedLanguage?.value?.takeIf { it.isNotBlank() }
+                    ?: SessionManager.getCachedAppLanguage(context)
+                return when (active) {
+                    "tl", "fil" -> "fil"
+                    "bik", "bcl" -> "bcl"
+                    else -> "en"
+                }
+            }
+
+            fun updateLangButtonLabel() {
+                val label = when (currentLangCode()) {
+                    "fil" -> "🌐 Tagalog / Filipino"
+                    "bcl" -> "🌐 Bikol"
+                    else -> "🌐 English"
+                }
+                binding.btnLanguage.text = label
+            }
+            updateLangButtonLabel()
+
+            binding.btnLanguage.setOnClickListener {
+                val options = arrayOf(
+                    context.getString(com.group7.agriserve.R.string.english),
+                    "${context.getString(com.group7.agriserve.R.string.tagalog)} (Filipino)",
+                    context.getString(com.group7.agriserve.R.string.bikol)
+                )
+                val codes = arrayOf("en", "fil", "bcl")
+                val checked = codes.indexOf(currentLangCode()).coerceAtLeast(0)
+
+                AlertDialog.Builder(context)
+                    .setTitle(context.getString(com.group7.agriserve.R.string.select_language))
+                    .setSingleChoiceItems(options, checked) { dialog, which ->
+                        val chosenCode = codes[which]
+                        SessionManager.saveAppLanguage(context, chosenCode)
+                        userViewModel?.updateLanguage(chosenCode, context)
+                        AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(chosenCode))
+                        updateLangButtonLabel()
+                        dialog.dismiss()
+                    }
+                    .setNegativeButton(context.getString(com.group7.agriserve.R.string.close), null)
+                    .show()
+            }
 
             // Handle Standard Email & Password Login
             binding.btnLogin.setOnClickListener {
@@ -122,20 +260,35 @@ fun LoginScreen(
                 if (!NetworkUtils.isOnline(context)) {
                     Toast.makeText(
                         context,
-                        "Internet connection required to log in. Once logged in, your session remains active offline for 7 days.",
+                        "Internet connection required for first-time login. Once signed in, you stay logged in offline and can unlock with your PIN or fingerprint.",
                         Toast.LENGTH_LONG
                     ).show()
                     return@setOnClickListener
                 }
 
-                auth.signInWithEmailAndPassword(email, password)
-                    .addOnCompleteListener { task ->
-                        if (task.isSuccessful) {
-                            handleSuccessfulAuth(auth.currentUser, email)
-                        } else {
-                            Toast.makeText(context, "Login failed: ${task.exception?.message}", Toast.LENGTH_LONG).show()
-                        }
+                binding.btnLogin.isEnabled = false
+                coroutineScope.launch {
+                    val recaptchaResult = RecaptchaManager.verifyWithBackend(RecaptchaAction.LOGIN, "login")
+                    if (recaptchaResult.isFailure) {
+                        binding.btnLogin.isEnabled = true
+                        Toast.makeText(
+                            context,
+                            recaptchaResult.exceptionOrNull()?.message ?: "Security check failed. Please try again.",
+                            Toast.LENGTH_LONG
+                        ).show()
+                        return@launch
                     }
+
+                    auth.signInWithEmailAndPassword(email, password)
+                        .addOnCompleteListener { task ->
+                            binding.btnLogin.isEnabled = true
+                            if (task.isSuccessful) {
+                                handleSuccessfulAuth(auth.currentUser, email)
+                            } else {
+                                Toast.makeText(context, "Login failed: ${task.exception?.message}", Toast.LENGTH_LONG).show()
+                            }
+                        }
+                }
             }
 
             // Handle Continue with Google
@@ -249,7 +402,7 @@ fun LoginScreen(
                 }
             }
 
-            // Handle Signup / Submit Credentials Button Click
+            // Handle Signup Button Click
             binding.btnSignup.setOnClickListener {
                 onSignupClick()
             }
@@ -260,6 +413,51 @@ fun LoginScreen(
             }
 
             binding.root
+        },
+        update = { rootView ->
+            val binding = ActivityLoginBinding.bind(rootView)
+            binding.ivThemeIcon.setImageResource(
+                if (isDarkThemeActive) com.group7.agriserve.R.drawable.ic_dark_mode
+                else com.group7.agriserve.R.drawable.ic_light_mode
+            )
+            binding.ivThemeIcon.setColorFilter(primaryTintColor)
+            binding.btnThemeToggle.setCardBackgroundColor(cardBgColor)
+            binding.cardLogo.setCardBackgroundColor(cardBgColor)
+
+            if (isDarkThemeActive) {
+                binding.loginScrollRoot.setBackgroundColor(surfaceBgColor)
+            } else {
+                binding.loginScrollRoot.setBackgroundResource(com.group7.agriserve.R.color.agri_green_light)
+            }
+
+            // Ensure crisp text & input contrast in both Light and Dark Mode
+            val primaryColorState = android.content.res.ColorStateList.valueOf(primaryTintColor)
+            val hintColorState = android.content.res.ColorStateList.valueOf(onSurfaceVariantColor)
+
+            binding.tvAppTitle.setTextColor(primaryTintColor)
+            binding.tvAppSlogan.setTextColor(onSurfaceVariantColor)
+            binding.tvOrContinueWith.setTextColor(onSurfaceVariantColor)
+            binding.btnForgotPassword.setTextColor(primaryTintColor)
+            binding.btnSignup.setTextColor(primaryTintColor)
+
+            binding.etEmail.setTextColor(onSurfaceColor)
+            binding.etEmail.setHintTextColor(onSurfaceVariantColor)
+            binding.tilEmail.boxStrokeColor = primaryTintColor
+            binding.tilEmail.defaultHintTextColor = hintColorState
+            binding.tilEmail.hintTextColor = primaryColorState
+            binding.tilEmail.setStartIconTintList(primaryColorState)
+
+            binding.etPassword.setTextColor(onSurfaceColor)
+            binding.etPassword.setHintTextColor(onSurfaceVariantColor)
+            binding.tilPassword.boxStrokeColor = primaryTintColor
+            binding.tilPassword.defaultHintTextColor = hintColorState
+            binding.tilPassword.hintTextColor = primaryColorState
+            binding.tilPassword.setStartIconTintList(primaryColorState)
+            binding.tilPassword.setEndIconTintList(primaryColorState)
+
+            binding.btnLanguage.setTextColor(onSurfaceColor)
+            binding.btnLanguage.backgroundTintList = android.content.res.ColorStateList.valueOf(cardBgColor)
+            binding.btnLanguage.strokeColor = primaryColorState
         }
     )
 }

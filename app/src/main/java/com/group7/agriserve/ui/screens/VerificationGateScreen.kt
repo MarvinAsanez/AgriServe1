@@ -66,11 +66,12 @@ import kotlinx.coroutines.launch
 @Composable
 fun VerificationGateScreen(
     userViewModel: UserViewModel,
-    onNavigateToSubmission: () -> Unit,
     onNavigateToStatus: () -> Unit,
     onNavigateToGuest: () -> Unit,
     onNavigateToVerified: () -> Unit,
     onNavigateToLogin: () -> Unit = {},
+    onNavigateToSignup: () -> Unit = {},
+    onNavigateToSubmission: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val auth = remember { FirebaseAuth.getInstance() }
@@ -376,7 +377,7 @@ fun VerificationGateScreen(
                                                     } else {
                                                         statusDialogTitle = "No Application Found"
                                                         statusDialogMessage = "No application record was found for '$email'.\n\n" +
-                                                                "If you are a new farmer, tap 'Submit Credentials as New Farmer' to begin onboarding."
+                                                                "If you are a new farmer, tap 'Sign Up / Create Account' to begin registration."
                                                         statusDialogIcon = Icons.Default.Info
                                                         statusDialogIconColor = Color(0xFF1976D2)
                                                         showStatusResultDialog = true
@@ -801,23 +802,26 @@ fun VerificationGateScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Alternate Action: Direct Credential Submission as New Farmer
+            // Action: Sign Up as New Farmer (Simplified initial registration)
             OutlinedButton(
-                onClick = { onNavigateToSubmission() },
+                onClick = { onNavigateToSignup() },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp),
                 shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = MaterialTheme.colorScheme.primary
+                ),
                 enabled = !isLoading
             ) {
                 Icon(
-                    imageVector = Icons.Default.Description,
+                    imageVector = Icons.Default.PersonAdd,
                     contentDescription = null,
                     modifier = Modifier.size(20.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Submit Credentials as New Farmer",
+                    text = "Sign Up / Create Account",
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold
                 )

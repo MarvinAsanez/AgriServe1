@@ -10,12 +10,13 @@ sealed class Screen(val route: String) {
     object VerifiedDashboard : Screen("verified_dashboard")
     object RealTimeApprovalResult : Screen("real_time_approval_result")
 
-    // Legacy Auth Routes mapped to Verification Gate
+    // Auth & Profile Verification Routes
     object Login : Screen("login")
     object ForgotPassword : Screen("forgot_password")
-    object Signup : Screen("credential_submission")
-    object AccountVerification : Screen("account_verification")
-    object Verification : Screen("account_verification")
+    object Signup : Screen("signup")
+    object ProfileVerification : Screen("profile_verification")
+    object AccountVerification : Screen("profile_verification")
+    object Verification : Screen("profile_verification")
 
     // Main App Functionality
     object Home : Screen("home")

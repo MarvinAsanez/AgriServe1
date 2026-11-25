@@ -8,6 +8,7 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -29,6 +30,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -37,8 +39,11 @@ import androidx.core.content.FileProvider
 import coil.compose.AsyncImage
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.group7.agriserve.R
+import com.group7.agriserve.ui.components.IdCameraScannerDialog
 import com.group7.agriserve.ui.components.LocationItem
 import com.group7.agriserve.data.repository.AddressRepository
+import com.group7.agriserve.util.IdAndFaceVerificationHelper
 import com.group7.agriserve.util.SessionManager
 import com.group7.agriserve.viewmodel.UserViewModel
 import kotlinx.coroutines.Dispatchers
@@ -57,13 +62,20 @@ fun EditProfileScreen(
 ) {
     val context = LocalContext.current
 
-    // Locked Fields (Read-Only) - Sourced from UserViewModel & Firestore
+    val isVerified = userViewModel.isVerified.value
+
+    var firstName by remember { mutableStateOf(userViewModel.firstName.value) }
+    var middleName by remember { mutableStateOf(userViewModel.middleName.value) }
+    var lastName by remember { mutableStateOf(userViewModel.lastName.value) }
+    var extensionName by remember { mutableStateOf(userViewModel.extensionName.value) }
+    var birthdate by remember { mutableStateOf(userViewModel.birthdate.value) }
+
     val name = userViewModel.farmerName.value.ifBlank {
         listOf(
-            userViewModel.firstName.value,
-            userViewModel.middleName.value,
-            userViewModel.lastName.value,
-            userViewModel.extensionName.value
+            firstName,
+            middleName,
+            lastName,
+            extensionName
         ).filter { it.isNotBlank() }.joinToString(" ").ifBlank { "Farmer" }
     }
 
@@ -130,6 +142,70 @@ fun EditProfileScreen(
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
     var tempImageUri by remember { mutableStateOf<Uri?>(null) }
     var showImageSourceDialog by remember { mutableStateOf(false) }
+
+    // Back-to-Back Valid ID State
+    var newIdFrontUri by remember { mutableStateOf<Uri?>(null) }
+    var newIdBackUri by remember { mutableStateOf<Uri?>(null) }
+    var showCameraScannerFront by remember { mutableStateOf(false) }
+    var showCameraScannerBack by remember { mutableStateOf(false) }
+    var isCheckingFront by remember { mutableStateOf(false) }
+    var isCheckingBack by remember { mutableStateOf(false) }
+    var isFrontValid by remember { mutableStateOf(!userViewModel.validIdUrl.value.isNullOrBlank()) }
+    var isBackValid by remember { mutableStateOf(!userViewModel.validIdBackUrl.value.isNullOrBlank()) }
+    var frontStatusText by remember { mutableStateOf<String?>(null) }
+    var frontErrorText by remember { mutableStateOf<String?>(null) }
+    var backStatusText by remember { mutableStateOf<String?>(null) }
+    var backErrorText by remember { mutableStateOf<String?>(null) }
+
+    val photoPickerFront = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        if (uri != null) {
+            newIdFrontUri = uri
+            isCheckingFront = true
+            frontErrorText = null
+            frontStatusText = "Inspecting ID Front..."
+            IdAndFaceVerificationHelper.validateIdFront(context, uri) { isValid, message, _ ->
+                isCheckingFront = false
+                if (isValid) {
+                    isFrontValid = true
+                    frontStatusText = message
+                    frontErrorText = null
+                } else {
+                    isFrontValid = false
+                    frontStatusText = null
+                    frontErrorText = message
+                    newIdFrontUri = null
+                    Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+    }
+
+    val photoPickerBack = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        if (uri != null) {
+            newIdBackUri = uri
+            isCheckingBack = true
+            backErrorText = null
+            backStatusText = "Inspecting ID Back..."
+            IdAndFaceVerificationHelper.validateIdBack(context, uri) { isValid, message ->
+                isCheckingBack = false
+                if (isValid) {
+                    isBackValid = true
+                    backStatusText = message
+                    backErrorText = null
+                } else {
+                    isBackValid = false
+                    backStatusText = null
+                    backErrorText = message
+                    newIdBackUri = null
+                    Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+    }
 
     var isSaving by remember { mutableStateOf(false) }
 
@@ -285,9 +361,14 @@ fun EditProfileScreen(
             return
         }
 
+        val computedFullName = listOf(firstName.trim(), middleName.trim(), lastName.trim(), extensionName.trim())
+            .filter { it.isNotBlank() }
+            .joinToString(" ")
+            .ifBlank { name }
+
         isSaving = true
         userViewModel.updateProfile(
-            newName = name,
+            newName = computedFullName,
             newPhone = phone.trim(),
             newRegion = selectedRegionName,
             newProvince = selectedProvinceName,
@@ -297,7 +378,15 @@ fun EditProfileScreen(
             newImageUri = selectedImageUri,
             newFarmerType = farmerType,
             newGender = gender,
-            newCropsPlanted = selectedCrops.toList()
+            newCropsPlanted = selectedCrops.toList(),
+            newFirstName = firstName.trim(),
+            newMiddleName = middleName.trim(),
+            newLastName = lastName.trim(),
+            newExtensionName = extensionName.trim(),
+            newBirthdate = birthdate.trim(),
+            newRsbsaNumber = rsbsaNumber.trim(),
+            newIdFrontUri = newIdFrontUri,
+            newIdBackUri = newIdBackUri
         ) { success, error ->
             isSaving = false
             if (success) {
@@ -307,6 +396,62 @@ fun EditProfileScreen(
                 Toast.makeText(context, "Update failed: $error", Toast.LENGTH_LONG).show()
             }
         }
+    }
+
+    if (showCameraScannerFront) {
+        IdCameraScannerDialog(
+            cardSideTitle = "Front of Government ID",
+            onCaptured = { uri ->
+                showCameraScannerFront = false
+                newIdFrontUri = uri
+                isCheckingFront = true
+                frontErrorText = null
+                frontStatusText = "Analyzing Front: Checking sharpness, blur & government ID markers..."
+                IdAndFaceVerificationHelper.validateIdFront(context, uri) { isValid, message, _ ->
+                    isCheckingFront = false
+                    if (isValid) {
+                        isFrontValid = true
+                        frontStatusText = message
+                        frontErrorText = null
+                    } else {
+                        isFrontValid = false
+                        frontStatusText = null
+                        frontErrorText = message
+                        newIdFrontUri = null
+                        Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+                    }
+                }
+            },
+            onDismiss = { showCameraScannerFront = false }
+        )
+    }
+
+    if (showCameraScannerBack) {
+        IdCameraScannerDialog(
+            cardSideTitle = "Back of Government ID",
+            onCaptured = { uri ->
+                showCameraScannerBack = false
+                newIdBackUri = uri
+                isCheckingBack = true
+                backErrorText = null
+                backStatusText = "Analyzing Back: Checking sharpness, barcode & security text..."
+                IdAndFaceVerificationHelper.validateIdBack(context, uri) { isValid, message ->
+                    isCheckingBack = false
+                    if (isValid) {
+                        isBackValid = true
+                        backStatusText = message
+                        backErrorText = null
+                    } else {
+                        isBackValid = false
+                        backStatusText = null
+                        backErrorText = message
+                        newIdBackUri = null
+                        Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+                    }
+                }
+            },
+            onDismiss = { showCameraScannerBack = false }
+        )
     }
 
     if (showImageSourceDialog) {
@@ -351,7 +496,7 @@ fun EditProfileScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Edit Profile", fontWeight = FontWeight.Bold) },
+                title = { Text(stringResource(R.string.edit_profile_title), fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -427,7 +572,11 @@ fun EditProfileScreen(
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     Text(
-                        text = "Official credentials (Full Name, RSBSA Reference, and Google Account) are verified and locked to protect your account. You may update your phone number, address, and profile photo.",
+                        text = if (isVerified) {
+                            "Official credentials (Full Name, RSBSA Reference, and Google Account) are verified and locked to protect your account. You may update your phone number, address, and profile photo."
+                        } else {
+                            "Please complete your official demographic credentials (Full Name, Birthdate, and RSBSA Number) below. Once verified by DA staff, full subsidy and resource assistance will be unlocked."
+                        },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onPrimaryContainer,
                         lineHeight = 18.sp
@@ -437,33 +586,38 @@ fun EditProfileScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // SECTION 1: RSBSA DEMOGRAPHICS (LOCKED)
+            // SECTION 1: RSBSA DEMOGRAPHICS
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "1. RSBSA Demographics",
+                    text = "1. Personal Demographics & RSBSA",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
                 )
                 Surface(
-                    color = Color(0xFFE8F5E9),
+                    color = if (isVerified) Color(0xFFE8F5E9) else MaterialTheme.colorScheme.secondaryContainer,
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(Icons.Default.Lock, contentDescription = null, tint = Color(0xFF2E7D32), modifier = Modifier.size(12.dp))
+                        Icon(
+                            imageVector = if (isVerified) Icons.Default.Lock else Icons.Default.Edit,
+                            contentDescription = null,
+                            tint = if (isVerified) Color(0xFF2E7D32) else MaterialTheme.colorScheme.onSecondaryContainer,
+                            modifier = Modifier.size(12.dp)
+                        )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = "LOCKED",
+                            text = if (isVerified) "VERIFIED" else "PENDING REVIEW",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF2E7D32)
+                            color = if (isVerified) Color(0xFF2E7D32) else MaterialTheme.colorScheme.onSecondaryContainer
                         )
                     }
                 }
@@ -471,37 +625,108 @@ fun EditProfileScreen(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            OutlinedTextField(
-                value = name,
-                onValueChange = {},
-                enabled = false,
-                label = { Text("Full Name *") },
-                leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
-                trailingIcon = { Icon(Icons.Default.Lock, contentDescription = "Locked", tint = Color.Gray) },
-                supportingText = {
-                    Text("Official registered farmer name on file", style = MaterialTheme.typography.labelSmall)
-                },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(10.dp),
-                colors = lockedFieldColors
-            )
+            if (isVerified) {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = {},
+                    enabled = false,
+                    label = { Text("Full Name *") },
+                    leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
+                    trailingIcon = { Icon(Icons.Default.Lock, contentDescription = "Locked", tint = Color.Gray) },
+                    supportingText = {
+                        Text("Official registered farmer name on file", style = MaterialTheme.typography.labelSmall)
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(10.dp),
+                    colors = lockedFieldColors
+                )
 
-            Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
-            OutlinedTextField(
-                value = rsbsaNumber.ifBlank { "Not Registered / NA" },
-                onValueChange = {},
-                enabled = false,
-                label = { Text("RSBSA Reference Number *") },
-                leadingIcon = { Icon(Icons.Default.AppRegistration, contentDescription = null) },
-                trailingIcon = { Icon(Icons.Default.Lock, contentDescription = "Locked", tint = Color.Gray) },
-                supportingText = {
-                    Text("Official DA RSBSA Reference Number", style = MaterialTheme.typography.labelSmall)
-                },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(10.dp),
-                colors = lockedFieldColors
-            )
+                OutlinedTextField(
+                    value = rsbsaNumber.ifBlank { "Not Registered / NA" },
+                    onValueChange = {},
+                    enabled = false,
+                    label = { Text("RSBSA Reference Number *") },
+                    leadingIcon = { Icon(Icons.Default.AppRegistration, contentDescription = null) },
+                    trailingIcon = { Icon(Icons.Default.Lock, contentDescription = "Locked", tint = Color.Gray) },
+                    supportingText = {
+                        Text("Official DA RSBSA Reference Number", style = MaterialTheme.typography.labelSmall)
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(10.dp),
+                    colors = lockedFieldColors
+                )
+            } else {
+                // Editable Demographics for Unverified Farmers
+                OutlinedTextField(
+                    value = firstName,
+                    onValueChange = { firstName = it },
+                    label = { Text("First Name *") },
+                    placeholder = { Text("e.g. Juan") },
+                    leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(10.dp)
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = middleName,
+                        onValueChange = { middleName = it },
+                        label = { Text("Middle Name") },
+                        placeholder = { Text("Optional") },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(10.dp)
+                    )
+                    OutlinedTextField(
+                        value = lastName,
+                        onValueChange = { lastName = it },
+                        label = { Text("Last Name *") },
+                        placeholder = { Text("e.g. Dela Cruz") },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(10.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = extensionName,
+                        onValueChange = { extensionName = it },
+                        label = { Text("Ext. (Jr/III)") },
+                        placeholder = { Text("e.g. Jr.") },
+                        modifier = Modifier.weight(0.45f),
+                        shape = RoundedCornerShape(10.dp)
+                    )
+                    OutlinedTextField(
+                        value = birthdate,
+                        onValueChange = { birthdate = it },
+                        label = { Text("Birthdate (YYYY-MM-DD)") },
+                        placeholder = { Text("1985-05-15") },
+                        leadingIcon = { Icon(Icons.Default.CalendarToday, contentDescription = null) },
+                        modifier = Modifier.weight(0.55f),
+                        shape = RoundedCornerShape(10.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                OutlinedTextField(
+                    value = rsbsaNumber,
+                    onValueChange = { rsbsaNumber = it },
+                    label = { Text("RSBSA Reference Number") },
+                    placeholder = { Text("e.g. 05-17-01-001-000123") },
+                    leadingIcon = { Icon(Icons.Default.AppRegistration, contentDescription = null) },
+                    supportingText = {
+                        Text("Official DA RSBSA stub or reference number", style = MaterialTheme.typography.labelSmall)
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(10.dp)
+                )
+            }
 
             Spacer(modifier = Modifier.height(20.dp))
 
@@ -888,6 +1113,164 @@ fun EditProfileScreen(
                 shape = RoundedCornerShape(10.dp)
             )
 
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // ====================== BACK-TO-BACK VALID ID ATTACHMENT ======================
+            Text(
+                text = "Valid Government ID (Back-to-Back)",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "Capture or attach sharp, glare-free photos of both the Front and Back of your official Government ID.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // ID FRONT CARD
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(1.5.dp, if (isFrontValid) Color(0xFF2E7D32) else MaterialTheme.colorScheme.outlineVariant)
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Text(
+                        text = "ID Front (Portrait & Details)",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    val frontDisplay = newIdFrontUri ?: userViewModel.validIdUrl.value
+                    if (!frontDisplay.toString().isNullOrBlank() && frontDisplay != null) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(160.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(Color.Black)
+                        ) {
+                            AsyncImage(
+                                model = frontDisplay,
+                                contentDescription = "ID Front",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Fit
+                            )
+                        }
+                    }
+
+                    if (isCheckingFront) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(frontStatusText ?: "Inspecting sharpness...", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                    } else if (frontErrorText != null) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(frontErrorText ?: "", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
+                    } else if (frontStatusText != null) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(frontStatusText ?: "", style = MaterialTheme.typography.labelSmall, color = Color(0xFF2E7D32))
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(
+                            onClick = { showCameraScannerFront = true },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Icon(Icons.Default.CameraAlt, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Camera (Landscape)", fontSize = 12.sp)
+                        }
+
+                        OutlinedButton(
+                            onClick = { photoPickerFront.launch("image/*") },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Icon(Icons.Default.PhotoLibrary, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Gallery", fontSize = 12.sp)
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // ID BACK CARD
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(1.5.dp, if (isBackValid) Color(0xFF2E7D32) else MaterialTheme.colorScheme.outlineVariant)
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Text(
+                        text = "ID Back (Barcode & Security Text)",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    val backDisplay = newIdBackUri ?: userViewModel.validIdBackUrl.value
+                    if (!backDisplay.toString().isNullOrBlank() && backDisplay != null) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(160.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(Color.Black)
+                        ) {
+                            AsyncImage(
+                                model = backDisplay,
+                                contentDescription = "ID Back",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Fit
+                            )
+                        }
+                    }
+
+                    if (isCheckingBack) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(backStatusText ?: "Inspecting barcode & sharpness...", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                    } else if (backErrorText != null) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(backErrorText ?: "", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
+                    } else if (backStatusText != null) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(backStatusText ?: "", style = MaterialTheme.typography.labelSmall, color = Color(0xFF2E7D32))
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(
+                            onClick = { showCameraScannerBack = true },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Icon(Icons.Default.CameraAlt, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Camera (Landscape)", fontSize = 12.sp)
+                        }
+
+                        OutlinedButton(
+                            onClick = { photoPickerBack.launch("image/*") },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Icon(Icons.Default.PhotoLibrary, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Gallery", fontSize = 12.sp)
+                        }
+                    }
+                }
+            }
+
             Spacer(modifier = Modifier.height(28.dp))
 
             // Save Button
@@ -910,7 +1293,7 @@ fun EditProfileScreen(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "SAVE PROFILE CHANGES",
+                        text = stringResource(R.string.save_profile_changes),
                         fontWeight = FontWeight.Bold,
                         fontSize = 15.sp
                     )

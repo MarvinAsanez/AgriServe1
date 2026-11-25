@@ -34,20 +34,20 @@
     <string name="farmer_community">Komunidad nin mga Paraoma</string>
     <string name="farm_tagging">Pag-tag kan Sakahan</string>
     <string name="view_all_farms">Mapa kan mga Umahan</string>
-    <string name="refresh_news">Sariwahon an Bareta</string>
-    <string name="news_error">Dai ma-load an bareta hale sa DA.gov.ph</string>
+    <string name="refresh_news">I-refresh an Bareta</string>
+    <string name="news_error">Dai ma-load an mga bareta hale sa DA.gov.ph</string>
 
     <!-- Profile Screen -->
     <string name="farmer_profile">Profile kan Paraoma</string>
     <string name="verified_farmer">Beripikadong Paraoma</string>
-    <string name="verification_pending">Kina-kumpirmar pa an Pagpamatood</string>
+    <string name="verification_pending">Pinoproseso an Beripikasyon</string>
     <string name="account_details">Mga Detalye kan Account</string>
     <string name="verification_identity">Beripikasyon asin Pagkamidbid</string>
     <string name="location_details">Mga Detalye kan Lokasyon</string>
     <string name="account_settings">Mga Setting kan Account</string>
     <string name="logout_account">MAG-LOG OUT</string>
-    <string name="language">Lenggwahe</string>
-    <string name="select_language">Magpili nin Lenggwahe</string>
+    <string name="language">Tataramon</string>
+    <string name="select_language">Magpili nin Tataramon</string>
     <string name="english">English</string>
     <string name="tagalog">Tagalog / Filipino</string>
     <string name="bikol">Bikol</string>
@@ -65,11 +65,11 @@
     <!-- Farm Tagging Screen -->
     <string name="farm_tagging_details">Pagtala asin mga Detalye kan Uma</string>
     <string name="save">I-SAVE</string>
-    <string name="exact_location_tagged">Eksitong na-tag an eksaktong lokasyon!</string>
+    <string name="exact_location_tagged">Matrayumpong na-tag an eksaktong lokasyon!</string>
     <string name="location_error_gps">Dai nakua an lokasyon. Pakisusi kun bukas an GPS.</string>
     <string name="error_getting_location">Igwang sala sa pagkuha kan lokasyon</string>
     <string name="enter_farm_name">Paki-laag tabi kan pangaran kan uma</string>
-    <string name="farm_save_success">Eksitong naitala an mga detalye kan uma!</string>
+    <string name="farm_save_success">Matrayumpong naitala an mga detalye kan uma!</string>
     <string name="farm_save_failed">Dai naitala an uma: %1$s</string>
     <string name="get_exact_location">Kuanon an Eksaktong Lokasyon (GPS)</string>
     <string name="geotag_label">Geotag: %1$s</string>
@@ -174,4 +174,30 @@
     <string name="rsbsa_download_form">I-download an Opisyal na RSBSA Form (PDF)</string>
     <string name="rsbsa_check_status_online">I-check an Status Online (DA Finder)</string>
     <string name="rsbsa_visit_da_portal">Bisitahon an Opisyal na DA Portal</string>
+    <string name="dont_have_account_signup">DAING ACCOUNT? MAG-SIGN UP DIGDI!</string>
+
+    <!-- Login & Auth Humanized Strings -->
+    <string name="forgot_password">Nalingawan an Password?</string>
+    <string name="login_upper">MAG-LOGIN</string>
+    <string name="or_continue_with">O MAGPADAGOS GAMIT AN</string>
+    <string name="continue_with_google">Magpadagos gamit an Google</string>
+    <string name="continue_with_facebook">Magpadagos gamit an Facebook</string>
+    <string name="farmer_sign_up_title">Pagparehistro nin Paraoma</string>
+    <string name="signup_subtitle">Maggibo nin sadiring AgriServe account tanganing makapoon. Puwede nindong kumpletohon an beripikasyon kan profile pagkatapos mag-login.</string>
+    <string name="mobile_phone_label">Numero kan Cellphone (hal. 09171234567)</string>
+    <string name="farmer_type_label">Klase nin Paraoma</string>
+    <string name="crops_planted_label">Mga Pananom</string>
+    <string name="create_farmer_account">MAGGIBO NIN ACCOUNT</string>
+    <string name="forgot_password_title">I-reset an Password</string>
+    <string name="send_otp_btn">IPADARA AN VERIFICATION CODE</string>
+    <string name="verify_reset_btn">KUMPIRMARON ASIN PALITAN AN PASSWORD</string>
+    <string name="status_aid_title">Kamugtakan asin Tabang sa Agrikultura</string>
+    <string name="requests_tab">Mga Kahagadan</string>
+    <string name="incidents_tab">Mga Insidente</string>
+    <string name="edit_profile_title">I-update an Profile</string>
+    <string name="save_profile_changes">I-SAVE AN MGA PAGBABAGO</string>
+    <string name="valid_id_back_to_back">Valid Government ID (Atubangan asin Likod)</string>
+    <string name="id_front_label">Atubangan kan ID (Litrato asin Detalye)</string>
+    <string name="id_back_label">Likod kan ID (Barcode asin Seguridad)</string>
+    <string name="camera_landscape">Kamera (Pahigda)</string>
 </resources>

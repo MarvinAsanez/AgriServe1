@@ -65,7 +65,7 @@ import java.util.UUID
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AccountVerificationScreen(
+fun ProfileVerificationScreen(
     userViewModel: UserViewModel,
     onBack: () -> Unit
 ) {
@@ -229,6 +229,7 @@ fun AccountVerificationScreen(
         )
 
         firestore.collection("users").document(uid).set(updates, SetOptions.merge())
+        firestore.collection("farmers").document(uid).set(updates, SetOptions.merge())
             .addOnSuccessListener {
                 val record = hashMapOf<String, Any>(
                     "userId" to uid,
@@ -398,14 +399,14 @@ fun AccountVerificationScreen(
             },
             title = {
                 Text(
-                    text = "Verification Submitted!",
+                    text = "Profile Verification Submitted!",
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center
                 )
             },
             text = {
                 Text(
-                    text = "Your Government ID (Front & Back) has been submitted to Department of Agriculture administrators.\n\nYour account status is now Pending Review. You will receive an official update once confirmed.",
+                    text = "Your Government ID (Front & Back) has been submitted to Department of Agriculture administrators.\n\nYour farmer profile status is now Pending Review. You will receive an official update once confirmed.",
                     style = MaterialTheme.typography.bodyMedium,
                     textAlign = TextAlign.Center
                 )
@@ -427,7 +428,7 @@ fun AccountVerificationScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Government ID & Facial Verification", fontWeight = FontWeight.Bold) },
+                title = { Text("Farmer Profile Verification", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -459,13 +460,13 @@ fun AccountVerificationScreen(
                     Spacer(modifier = Modifier.width(12.dp))
                     Column {
                         Text(
-                            text = "Department of Agriculture Verification",
+                            text = "Department of Agriculture Profile Verification",
                             fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
                         Text(
-                            text = "Submit both Front and Back of your Government ID to verify your farmer profile.",
+                            text = "Submit both Front and Back of your Government ID and RSBSA details to verify your farmer profile.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f)
                         )
@@ -769,7 +770,7 @@ fun AccountVerificationScreen(
 
             // STEP 3: REGISTERED FARMER INFO
             Text(
-                text = "Step 2: Cardholder Identity Summary",
+                text = "Step 2: Cardholder Profile Summary",
                 fontWeight = FontWeight.Bold,
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.primary
@@ -820,7 +821,7 @@ fun AccountVerificationScreen(
                     Icon(Icons.Default.Verified, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = if (isIdFrontValid && isIdBackValid && idNumber.isNotBlank()) "SUBMIT GOVERNMENT ID FOR VERIFICATION" else "COMPLETE ALL STEPS TO SUBMIT",
+                        text = if (isIdFrontValid && isIdBackValid && idNumber.isNotBlank()) "SUBMIT FOR PROFILE VERIFICATION" else "COMPLETE ALL STEPS TO SUBMIT",
                         fontWeight = FontWeight.Bold
                     )
                 }
@@ -829,4 +830,15 @@ fun AccountVerificationScreen(
             Spacer(modifier = Modifier.height(20.dp))
         }
     }
+}
+
+/**
+ * Backward compatibility alias for AccountVerificationScreen
+ */
+@Composable
+fun AccountVerificationScreen(
+    userViewModel: UserViewModel,
+    onBack: () -> Unit
+) {
+    ProfileVerificationScreen(userViewModel = userViewModel, onBack = onBack)
 }

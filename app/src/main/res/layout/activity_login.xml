@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/loginScrollRoot"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/agri_green_light"
@@ -13,7 +14,38 @@
         android:orientation="vertical"
         android:padding="28dp">
 
+        <!-- Upper-Right Theme Toggle Icon -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="end"
+            android:layout_marginBottom="4dp">
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/btnThemeToggle"
+                android:layout_width="42dp"
+                android:layout_height="42dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:contentDescription="@string/select_theme"
+                app:cardBackgroundColor="@color/white"
+                app:cardCornerRadius="21dp"
+                app:cardElevation="2dp"
+                app:strokeColor="@color/agri_green_primary"
+                app:strokeWidth="1dp">
+
+                <ImageView
+                    android:id="@+id/ivThemeIcon"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:padding="9dp"
+                    android:src="@drawable/ic_light_mode"
+                    app:tint="@color/agri_green_primary" />
+            </com.google.android.material.card.MaterialCardView>
+        </LinearLayout>
+
         <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardLogo"
             android:layout_width="90dp"
             android:layout_height="90dp"
             android:layout_marginBottom="18dp"
@@ -30,6 +62,7 @@
         </com.google.android.material.card.MaterialCardView>
 
         <TextView
+            android:id="@+id/tvAppTitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:fontFamily="sans-serif-black"
@@ -40,21 +73,23 @@
             android:textStyle="bold" />
 
         <TextView
+            android:id="@+id/tvAppSlogan"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginBottom="28dp"
             android:alpha="0.75"
             android:fontFamily="sans-serif-medium"
-            android:text="Empowering Local Farmers"
+            android:text="@string/app_slogan"
             android:textColor="@color/agri_brown"
             android:textSize="14sp" />
 
         <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/tilEmail"
             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="14dp"
-            android:hint="Email Address"
+            android:hint="@string/email_address"
             app:boxCornerRadiusBottomEnd="12dp"
             app:boxCornerRadiusBottomStart="12dp"
             app:boxCornerRadiusTopEnd="12dp"
@@ -73,11 +108,12 @@
         </com.google.android.material.textfield.TextInputLayout>
 
         <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/tilPassword"
             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="6dp"
-            android:hint="Password"
+            android:hint="@string/password"
             app:boxCornerRadiusBottomEnd="12dp"
             app:boxCornerRadiusBottomStart="12dp"
             app:boxCornerRadiusTopEnd="12dp"
@@ -105,7 +141,7 @@
             android:layout_gravity="end"
             android:layout_marginBottom="18dp"
             android:fontFamily="sans-serif-medium"
-            android:text="Forgot Password?"
+            android:text="@string/forgot_password"
             android:textColor="@color/agri_green_primary"
             android:textSize="13sp"
             android:padding="4dp"
@@ -123,7 +159,7 @@
             android:insetTop="0dp"
             android:insetBottom="0dp"
             android:letterSpacing="0.05"
-            android:text="LOGIN"
+            android:text="@string/login_upper"
             android:textColor="@color/white"
             android:textSize="15sp"
             app:cornerRadius="12dp" />
@@ -144,12 +180,13 @@
                 android:background="#D1D5DB" />
 
             <TextView
+                android:id="@+id/tvOrContinueWith"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:paddingStart="14dp"
                 android:paddingEnd="14dp"
                 android:fontFamily="sans-serif-medium"
-                android:text="OR CONTINUE WITH"
+                android:text="@string/or_continue_with"
                 android:textColor="@color/agri_brown"
                 android:textSize="11sp"
                 android:letterSpacing="0.08" />
@@ -173,7 +210,7 @@
             android:insetTop="0dp"
             android:insetBottom="0dp"
             android:letterSpacing="0.02"
-            android:text="Continue with Google"
+            android:text="@string/continue_with_google"
             android:textColor="#3C4043"
             android:textSize="14sp"
             app:cornerRadius="12dp"
@@ -197,7 +234,7 @@
             android:insetTop="0dp"
             android:insetBottom="0dp"
             android:letterSpacing="0.02"
-            android:text="Continue with Facebook"
+            android:text="@string/continue_with_facebook"
             android:textColor="@color/white"
             android:textSize="14sp"
             app:cornerRadius="12dp"
@@ -213,9 +250,29 @@
             style="@style/Widget.MaterialComponents.Button.TextButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="DON'T HAVE AN ACCOUNT? SUBMIT CREDENTIALS"
+            android:text="@string/dont_have_account_signup"
             android:textColor="@color/agri_green_dark"
             android:textSize="12sp" />
+
+        <!-- Middle-Lower Language Selector Button -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnLanguage"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="12dp"
+            android:minHeight="0dp"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:text="@string/language"
+            android:textAllCaps="false"
+            android:textColor="@color/agri_green_dark"
+            android:textSize="13sp"
+            app:backgroundTint="@color/white"
+            app:cornerRadius="20dp"
+            app:strokeColor="@color/agri_green_primary"
+            app:strokeWidth="1dp" />
 
     </LinearLayout>
 </ScrollView>

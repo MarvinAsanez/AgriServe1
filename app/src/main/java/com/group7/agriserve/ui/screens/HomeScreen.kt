@@ -71,9 +71,6 @@ fun HomeScreen(
     val candidateIds = remember(authUid, sessionUid, vmDocId) {
         listOf(authUid, sessionUid, vmDocId).filter { it.isNotBlank() }.distinct()
     }
-    var activeDisputesCount by remember { mutableStateOf(0) }
-    var latestDisputeFarmName by remember { mutableStateOf("") }
-
     val currentThemeMode = userViewModel?.themeMode?.value ?: "system"
     val isDarkThemeActive = when (currentThemeMode) {
         "dark" -> true
@@ -89,18 +86,6 @@ fun HomeScreen(
         if (candidateIds.isNotEmpty()) {
             val db = FirebaseFirestore.getInstance()
             for (cid in candidateIds) {
-                db.collection("farm_disputes")
-                    .whereEqualTo("farmUserId", cid)
-                    .whereEqualTo("farmerDisputed", false)
-                    .addSnapshotListener { snapshot, _ ->
-                        if (snapshot != null) {
-                            activeDisputesCount = snapshot.size()
-                            if (!snapshot.isEmpty) {
-                                latestDisputeFarmName = snapshot.documents.firstOrNull()?.getString("farmName") ?: "Your Farm"
-                            }
-                        }
-                    }
-
                 db.collection("notifications")
                     .whereEqualTo("targetUserId", cid)
                     .addSnapshotListener { snapshot, _ ->
@@ -211,7 +196,7 @@ fun HomeScreen(
                         )
                     }
 
-                    val totalBadges = unreadNotificationsCount + activeDisputesCount
+                    val totalBadges = unreadNotificationsCount
                     if (totalBadges > 0) {
                         Box(
                             modifier = Modifier
@@ -598,7 +583,7 @@ fun HomeScreen(
                         .fillMaxWidth()
                         .heightIn(max = 400.dp)
                 ) {
-                    if (notificationsList.isEmpty() && activeDisputesCount == 0) {
+                    if (notificationsList.isEmpty()) {
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -625,48 +610,6 @@ fun HomeScreen(
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            if (activeDisputesCount > 0) {
-                                item {
-                                    Surface(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .clickable {
-                                                showNotificationsDialog = false
-                                                onStatusFilterClick("Disputes")
-                                            },
-                                        shape = RoundedCornerShape(12.dp),
-                                        color = Color(0xFFFFF3E0),
-                                        border = androidx.compose.foundation.BorderStroke(1.2.dp, Color(0xFFE65100))
-                                    ) {
-                                        Row(
-                                            modifier = Modifier.padding(12.dp),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Icon(
-                                                Icons.Default.Warning,
-                                                contentDescription = null,
-                                                tint = Color(0xFFE65100),
-                                                modifier = Modifier.size(24.dp)
-                                            )
-                                            Spacer(modifier = Modifier.width(10.dp))
-                                            Column(modifier = Modifier.weight(1f)) {
-                                                Text(
-                                                    text = "⚠️ Farm Report Alert (" + activeDisputesCount + ")",
-                                                    fontWeight = FontWeight.Bold,
-                                                    fontSize = 13.sp,
-                                                    color = Color(0xFFBF360C)
-                                                )
-                                                Text(
-                                                    text = "A report was filed against " + latestDisputeFarmName + ". Tap to respond or contest.",
-                                                    fontSize = 11.5.sp,
-                                                    color = Color(0xFFE65100)
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-
                             items(notificationsList) { notif ->
                                 val title = notif.get("title") as? String ?: "DA Advisory"
                                 val msg = notif.get("message") as? String ?: ""

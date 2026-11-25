@@ -413,12 +413,17 @@ class UserViewModel : ViewModel() {
      * Complete sign out: detaches Firestore listeners, wipes all cached user session data,
      * resets farmer state to unauthenticated, and signs out of Firebase Auth.
      */
-    fun logout(context: Context) {
+    /**
+     * Completely resets in-memory profile state and removes any active listeners
+     */
+    fun resetProfileState() {
         farmerListener?.remove()
         farmerListener = null
 
+        farmerDocId.value = ""
         farmerStatus.value = "unauthenticated"
         farmerRole.value = "guest_farmer"
+        role.value = "Guest"
         isVerified.value = false
         accountStatus.value = "Pending"
         verificationStatus.value = "Not Submitted"
@@ -433,7 +438,10 @@ class UserViewModel : ViewModel() {
         phoneNumber.value = ""
         gmail.value = ""
         validIdUrl.value = null
+        validIdBackUrl.value = null
         idImageUrl.value = null
+        faceImageUrl.value = null
+        faceMatchScore.value = 0
         adminFeedback.value = null
         adminReviewedBy.value = null
         adminReviewedAt.value = null
@@ -442,13 +450,18 @@ class UserViewModel : ViewModel() {
         farmerEmail.value = ""
         farmerPhone.value = ""
         rsbsaNumber.value = ""
+        farmerType.value = "Smallholder Farmer"
+        cropsPlanted.value = emptyList()
 
         street.value = ""
         barangay.value = ""
         city.value = ""
         province.value = ""
         region.value = ""
+    }
 
+    fun logout(context: Context) {
+        resetProfileState()
         SessionManager.clearSession(context)
         try {
             auth.signOut()
@@ -498,6 +511,30 @@ class UserViewModel : ViewModel() {
                 farmerStatus.value = "not_submitted"
             }
             return
+        }
+
+        val effectiveCtx = context ?: appContext
+        fun forceSignOutAdmin() {
+            if (effectiveCtx != null) {
+                logout(effectiveCtx)
+            } else {
+                try { auth.signOut() } catch (_: Exception) {}
+                resetProfileState()
+            }
+        }
+
+        if (userEmail.equals("agriserve@admin.da.gov.ph", ignoreCase = true)) {
+            forceSignOutAdmin()
+            return
+        }
+
+        if (!uid.isNullOrBlank()) {
+            db.collection("admins").document(uid).get()
+                .addOnSuccessListener { adminDoc ->
+                    if (adminDoc != null && adminDoc.exists()) {
+                        forceSignOutAdmin()
+                    }
+                }
         }
 
         if (userEmail.isNotBlank()) {
@@ -1176,13 +1213,10 @@ class UserViewModel : ViewModel() {
             } else if (currentUser != null && !currentUser.isAnonymous) {
                 proceedWithUid(currentUser.uid)
             } else {
-                // Fallback: If no custom password was provided, create with secure default password based on phone/RSBSA
-                val rawDigits = phoneInput.filter { it.isDigit() }
-                val fallbackPassword = if (rawDigits.length >= 4) {
-                    "AgriServe@" + rawDigits.takeLast(4)
-                } else {
-                    "AgriServe@2026"
-                }
+                // Fallback: If no custom password was provided, generate a cryptographically random password
+                val chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*"
+                val random = java.security.SecureRandom()
+                val fallbackPassword = (1..20).map { chars[random.nextInt(chars.length)] }.joinToString("")
                 auth.createUserWithEmailAndPassword(cleanEmail, fallbackPassword)
                     .addOnSuccessListener { authResult ->
                         val uid = authResult.user?.uid ?: System.currentTimeMillis().toString()
@@ -1533,6 +1567,14 @@ class UserViewModel : ViewModel() {
         newFarmerType: String? = null,
         newGender: String? = null,
         newCropsPlanted: List<String>? = null,
+        newFirstName: String? = null,
+        newMiddleName: String? = null,
+        newLastName: String? = null,
+        newExtensionName: String? = null,
+        newBirthdate: String? = null,
+        newRsbsaNumber: String? = null,
+        newIdFrontUri: Uri? = null,
+        newIdBackUri: Uri? = null,
         onComplete: (Boolean, String?) -> Unit
     ) {
         val targetUid = farmerDocId.value.ifBlank {
@@ -1541,13 +1583,24 @@ class UserViewModel : ViewModel() {
         } ?: return onComplete(false, "No active farmer session found")
         val uid = targetUid
 
-        val nameParts = newName.trim().split("\\s+".toRegex())
-        val fName = if (nameParts.isNotEmpty()) nameParts.first() else newName
-        val lName = if (nameParts.size > 1) nameParts.drop(1).joinToString(" ") else ""
+        val computedFullName = if (!newFirstName.isNullOrBlank() || !newLastName.isNullOrBlank()) {
+            listOfNotNull(
+                newFirstName?.trim()?.ifBlank { null },
+                newMiddleName?.trim()?.ifBlank { null },
+                newLastName?.trim()?.ifBlank { null },
+                newExtensionName?.trim()?.ifBlank { null }
+            ).joinToString(" ").ifBlank { newName }
+        } else {
+            newName
+        }
+
+        val nameParts = computedFullName.trim().split("\\s+".toRegex())
+        val fName = newFirstName?.trim()?.ifBlank { null } ?: (if (nameParts.isNotEmpty()) nameParts.first() else computedFullName)
+        val lName = newLastName?.trim()?.ifBlank { null } ?: (if (nameParts.size > 1) nameParts.drop(1).joinToString(" ") else "")
 
         val updates = hashMapOf<String, Any>(
-            "name" to newName,
-            "fullName" to newName,
+            "name" to computedFullName,
+            "fullName" to computedFullName,
             "phone" to newPhone,
             "region" to newRegion,
             "province" to newProvince,
@@ -1566,6 +1619,24 @@ class UserViewModel : ViewModel() {
             "address.zone" to newStreet,
             "lastProfileUpdate" to Timestamp.now()
         )
+
+        if (!newMiddleName.isNullOrBlank()) {
+            updates["middleName"] = newMiddleName.trim()
+            updates["personalInfo.middleName"] = newMiddleName.trim()
+        }
+        if (!newExtensionName.isNullOrBlank()) {
+            updates["extensionName"] = newExtensionName.trim()
+            updates["personalInfo.extensionName"] = newExtensionName.trim()
+        }
+        if (!newBirthdate.isNullOrBlank()) {
+            updates["birthdate"] = newBirthdate.trim()
+            updates["personalInfo.birthdate"] = newBirthdate.trim()
+        }
+        if (!newRsbsaNumber.isNullOrBlank()) {
+            updates["rsbsaNumber"] = newRsbsaNumber.trim()
+            updates["rsbsa"] = newRsbsaNumber.trim()
+            updates["personalInfo.rsbsaNumber"] = newRsbsaNumber.trim()
+        }
 
         if (!newFarmerType.isNullOrBlank()) {
             updates["farmerType"] = newFarmerType.trim()
@@ -1603,11 +1674,23 @@ class UserViewModel : ViewModel() {
             }
             db.collection("farmers").document(uid).set(updates, SetOptions.merge())
                 .addOnSuccessListener {
-                    farmerName.value = newName
+                    farmerName.value = computedFullName
                     farmerPhone.value = newPhone
                     phoneNumber.value = newPhone
                     firstName.value = fName
                     lastName.value = lName
+                    if (!newMiddleName.isNullOrBlank()) {
+                        middleName.value = newMiddleName.trim()
+                    }
+                    if (!newExtensionName.isNullOrBlank()) {
+                        extensionName.value = newExtensionName.trim()
+                    }
+                    if (!newBirthdate.isNullOrBlank()) {
+                        birthdate.value = newBirthdate.trim()
+                    }
+                    if (!newRsbsaNumber.isNullOrBlank()) {
+                        rsbsaNumber.value = newRsbsaNumber.trim()
+                    }
                     region.value = newRegion
                     province.value = newProvince
                     city.value = newCity
@@ -1630,6 +1713,56 @@ class UserViewModel : ViewModel() {
                 }
         }
 
+        fun uploadIdDocumentsThenSave() {
+            val ctx = appContext
+            fun uploadSingleId(uri: Uri, side: String, onDone: (String) -> Unit) {
+                val idRef = storage.reference.child("valid_ids/$uid/$side.jpg")
+                idRef.putFile(uri)
+                    .continueWithTask { task ->
+                        if (!task.isSuccessful) task.exception?.let { throw it }
+                        idRef.downloadUrl
+                    }
+                    .addOnSuccessListener { downloadUri -> onDone(downloadUri.toString()) }
+                    .addOnFailureListener {
+                        val bytes = if (ctx != null) compressUriToJpeg(ctx, uri, maxBytes = 160 * 1024) else null
+                        val b64 = bytes?.let { "data:image/jpeg;base64," + Base64.encodeToString(it, Base64.NO_WRAP) }
+                        onDone(b64 ?: "")
+                    }
+            }
+
+            fun uploadBackThenSave() {
+                if (newIdBackUri != null) {
+                    uploadSingleId(newIdBackUri, "back") { backUrl ->
+                        if (backUrl.isNotBlank()) {
+                            updates["idBackUrl"] = backUrl
+                            updates["idBackImageUrl"] = backUrl
+                            updates["documents.idBackUrl"] = backUrl
+                            validIdBackUrl.value = backUrl
+                            idBackImageUrl.value = backUrl
+                        }
+                        finalizeSave()
+                    }
+                } else {
+                    finalizeSave()
+                }
+            }
+
+            if (newIdFrontUri != null) {
+                uploadSingleId(newIdFrontUri, "front") { frontUrl ->
+                    if (frontUrl.isNotBlank()) {
+                        updates["validIdUrl"] = frontUrl
+                        updates["idImageUrl"] = frontUrl
+                        updates["documents.validIdUrl"] = frontUrl
+                        validIdUrl.value = frontUrl
+                        idImageUrl.value = frontUrl
+                    }
+                    uploadBackThenSave()
+                }
+            } else {
+                uploadBackThenSave()
+            }
+        }
+
         fun handleFaceUploadThenSave() {
             if (liveFaceBitmap != null) {
                 val baos = ByteArrayOutputStream()
@@ -1644,16 +1777,16 @@ class UserViewModel : ViewModel() {
                     .addOnSuccessListener { faceUri ->
                         updates["faceImageUrl"] = faceUri.toString()
                         faceImageUrl.value = faceUri.toString()
-                        finalizeSave()
+                        uploadIdDocumentsThenSave()
                     }
                     .addOnFailureListener {
                         val base64 = "data:image/jpeg;base64," + Base64.encodeToString(data, Base64.NO_WRAP)
                         updates["faceImageUrl"] = base64
                         faceImageUrl.value = base64
-                        finalizeSave()
+                        uploadIdDocumentsThenSave()
                     }
             } else {
-                finalizeSave()
+                uploadIdDocumentsThenSave()
             }
         }
 

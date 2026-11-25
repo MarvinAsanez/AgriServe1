@@ -57,3 +57,4 @@ If the feature connects to the web dashboard:
 - Add UI markup cleanly in `public/{page}.html`.
 - Implement client-side logic in a dedicated module under `public/assets/js/{feature}.js`.
 - Reuse `firebase-config.js` for initialized Firestore (`db`) and Auth (`auth`) instances.
+

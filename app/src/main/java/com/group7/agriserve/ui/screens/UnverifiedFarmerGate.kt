@@ -63,7 +63,7 @@ fun UnverifiedFarmerGate(
             Spacer(modifier = Modifier.height(20.dp))
 
             Text(
-                text = "Verified Farmer Status Required",
+                text = "Verified Farmer Profile Required",
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
@@ -77,7 +77,7 @@ fun UnverifiedFarmerGate(
                 shape = RoundedCornerShape(8.dp)
             ) {
                 Text(
-                    text = "Current Tier: Non-Verified Farmer",
+                    text = "Current Status: Unverified Profile",
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                     color = Color(0xFFE65100),
                     style = MaterialTheme.typography.labelMedium,
@@ -152,7 +152,7 @@ fun UnverifiedFarmerGate(
             ) {
                 Icon(Icons.Default.Badge, null)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("VERIFY MY ACCOUNT", fontWeight = FontWeight.Bold)
+                Text("VERIFY FARMER PROFILE", fontWeight = FontWeight.Bold)
             }
 
             Spacer(modifier = Modifier.height(12.dp))

@@ -5,9 +5,9 @@ import android.content.SharedPreferences
 import com.google.firebase.auth.FirebaseAuth
 
 /**
- * Manages user login session persistence and duration.
- * Keeps users logged in for 7 days (1 week) to prevent repeated login prompts,
- * enabling seamless offline usage of the AgriServe app.
+ * Manages user login session persistence.
+ * Keeps users logged in persistently (no auto-logout) to enable seamless
+ * offline usage with Offline PIN & Fingerprint Lock.
  */
 object SessionManager {
     private const val PREF_NAME = "agriserve_session_prefs"
@@ -146,30 +146,12 @@ object SessionManager {
         val lastLogin = prefs.getLong(KEY_LAST_LOGIN_TIME, 0L)
         if (lastLogin == 0L) return false
 
-        val elapsed = System.currentTimeMillis() - lastLogin
-
-        // Check if within the 7-day period
-        if (elapsed in 0..SESSION_VALIDITY_MS) {
-            return true
-        }
-
-        // If offline and session just expired, allow graceful extension rather than sudden lockout in the field
-        if (!NetworkUtils.isOnline(context)) {
-            return true
-        }
-
-        // Expired after 7 days when online: clear session and sign out
-        clearSession(context)
-        try {
-            auth.signOut()
-        } catch (_: Exception) {
-            // ignore
-        }
-        return false
+        // Persistent session: users remain signed in offline & online until they explicitly log out.
+        return true
     }
 
     /**
-     * Refreshes the 7-day session window on active online use.
+     * Refreshes the last-active session timestamp on active online use.
      */
     fun touchSession(context: Context) {
         val prefs = getPrefs(context)

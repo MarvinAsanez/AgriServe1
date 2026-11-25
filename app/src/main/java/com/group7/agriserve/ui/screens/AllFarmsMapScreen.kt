@@ -43,13 +43,12 @@ import kotlinx.coroutines.delay
 import java.util.Locale
 
 /**
- * Entity types displayed on the Unified Farmers Map & Disputes Screen
+ * Entity types displayed on the Unified Farmers Map Screen
  */
 enum class MapEntityType {
     FARM,
     FARMER,
-    INCIDENT,
-    DISPUTE
+    INCIDENT
 }
 
 /**
@@ -57,7 +56,6 @@ enum class MapEntityType {
  * - Tagged Farms (farms collection)
  * - Registered RSBSA Farmers (farmers collection)
  * - Incident & Outbreak Reports (reports collection)
- * - Land Disputes & Fraud Reports (farm_disputes collection)
  */
 data class MapEntityMarker(
     val id: String,
@@ -292,45 +290,25 @@ fun AllFarmsMapScreen(
 
     var selectedEntity by remember { mutableStateOf<MapEntityMarker?>(null) }
     var searchQuery by remember { mutableStateOf("") }
-    var selectedFilter by remember { mutableStateOf("ALL") } // "ALL", "FARMS", "FARMERS", "INCIDENTS", "DISPUTES", "MY_ITEMS"
-
-    // Dispute / Fraud Report Dialog State
-    var showDisputeDialog by remember { mutableStateOf(false) }
-    var disputingTarget by remember { mutableStateOf<MapEntityMarker?>(null) }
-    var disputeCategory by remember { mutableStateOf("Unauthorized Farm Tagging / Land Dispute") }
-    var disputeDescription by remember { mutableStateOf("") }
-    var isSubmittingDispute by remember { mutableStateOf(false) }
-    var showCategoryDropdown by remember { mutableStateOf(false) }
-    val disputeCategories = listOf(
-        "Unauthorized Farm Tagging / Land Dispute",
-        "Fraudulent Farmer / Fake Identity",
-        "Inaccurate Boundaries / Exaggerated Size",
-        "Non-Agricultural / Inactive Land Claim",
-        "Duplicate / Multiple RSBSA Claimants",
-        "Other Fraudulent / Suspicious Activity"
-    )
+    var selectedFilter by remember { mutableStateOf("ALL") } // "ALL", "FARMS", "FARMERS", "INCIDENTS", "MY_ITEMS"
 
     val cameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(LatLng(13.8167, 122.7833), 10f)
     }
 
-    // Parallel Real-Time Listeners across all 4 collections:
+    // Parallel Real-Time Listeners across 3 collections:
     // 1. farms
     // 2. farmers
     // 3. reports (incidents)
-    // 4. farm_disputes (fraud / land disputes)
     DisposableEffect(currentUid) {
         val farmsMap = mutableMapOf<String, MapEntityMarker>()
         val farmersMap = mutableMapOf<String, MapEntityMarker>()
         val reportsMap = mutableMapOf<String, MapEntityMarker>()
-        val disputesMap = mutableMapOf<String, MapEntityMarker>()
 
         fun syncAllEntities() {
             val merged = mutableListOf<MapEntityMarker>()
             merged.addAll(farmsMap.values)
-            merged.addAll(farmersMap.values)
             merged.addAll(reportsMap.values)
-            merged.addAll(disputesMap.values)
 
             AllFarmsMapCache.cachedEntities = merged
             allEntities = merged
@@ -489,52 +467,10 @@ fun AllFarmsMapScreen(
             }
         }
 
-        // 4. Farm Disputes & Fraud Reports Listener
-        val disputesSub = db.collection("farm_disputes").addSnapshotListener { snap, err ->
-            if (err == null && snap != null) {
-                disputesMap.clear()
-                for (doc in snap.documents) {
-                    val coords = extractFarmCoordinates(doc) ?: continue
-                    val disputedFarm = doc.getString("farmName") ?: "Disputed Farm Parcel"
-                    val suspectOwner = doc.getString("farmOwner") ?: doc.getString("suspectClaimant") ?: "Suspect Claimant"
-                    val category = doc.getString("category")
-                        ?: doc.getString("reportCategory")
-                        ?: "Unauthorized Farm Tagging / Land Dispute"
-                    val description = doc.getString("description")
-                        ?: "Ownership dispute or fraudulent boundary claim submitted to DA."
-                    val status = doc.getString("status") ?: "Pending Investigation"
-                    val reporterName = doc.getString("reporterName") ?: "Complainant Farmer"
-                    val reporterPhone = doc.getString("reporterPhone") ?: doc.getString("contactNumber") ?: ""
-                    val reporterId = doc.getString("reporterId") ?: ""
-                    val crop = doc.getString("cropType") ?: "Disputed Crops"
-                    val size = doc.getString("farmSize") ?: "N/A"
-
-                    disputesMap[doc.id] = MapEntityMarker(
-                        id = doc.id,
-                        type = MapEntityType.DISPUTE,
-                        title = "Dispute: $disputedFarm",
-                        subtitle = "Claimed by $suspectOwner • Complainant: $reporterName",
-                        location = coords,
-                        ownerOrReporter = suspectOwner,
-                        contact = reporterPhone,
-                        category = category,
-                        description = description,
-                        status = status,
-                        cropType = crop,
-                        size = size,
-                        userId = reporterId,
-                        timestamp = doc.getTimestamp("timestamp") ?: doc.getTimestamp("created_at")
-                    )
-                }
-                syncAllEntities()
-            }
-        }
-
         onDispose {
             farmsSub.remove()
             farmersSub.remove()
             reportsSub.remove()
-            disputesSub.remove()
         }
     }
 
@@ -545,23 +481,6 @@ fun AllFarmsMapScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    if (selectedEntity != null && selectedEntity?.type == MapEntityType.FARM && selectedEntity?.userId != currentUid) {
-                        IconButton(
-                            onClick = {
-                                disputingTarget = selectedEntity
-                                disputeDescription = ""
-                                showDisputeDialog = true
-                            }
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Report,
-                                contentDescription = "Report Farm",
-                                tint = Color.White
-                            )
-                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -578,7 +497,6 @@ fun AllFarmsMapScreen(
                     "FARMS" -> entity.type == MapEntityType.FARM
                     "FARMERS" -> entity.type == MapEntityType.FARMER
                     "INCIDENTS" -> entity.type == MapEntityType.INCIDENT
-                    "DISPUTES" -> entity.type == MapEntityType.DISPUTE
                     "MY_ITEMS" -> entity.userId == currentUid && currentUid.isNotBlank()
                     else -> true
                 }
@@ -609,14 +527,12 @@ fun AllFarmsMapScreen(
                         MapEntityType.FARM -> if (isMyItem) BitmapDescriptorFactory.HUE_AZURE else BitmapDescriptorFactory.HUE_GREEN
                         MapEntityType.FARMER -> BitmapDescriptorFactory.HUE_CYAN
                         MapEntityType.INCIDENT -> BitmapDescriptorFactory.HUE_RED
-                        MapEntityType.DISPUTE -> BitmapDescriptorFactory.HUE_ORANGE
                     }
 
                     val typeBadge = when (entity.type) {
                         MapEntityType.FARM -> "🌾 Farm: "
                         MapEntityType.FARMER -> "🧑‍🌾 Farmer: "
                         MapEntityType.INCIDENT -> "🔴 Incident: "
-                        MapEntityType.DISPUTE -> "⚖️ Dispute: "
                     }
 
                     Marker(
@@ -661,7 +577,7 @@ fun AllFarmsMapScreen(
                         TextField(
                             value = searchQuery,
                             onValueChange = { searchQuery = it },
-                            placeholder = { Text("Search farms, farmers, incidents, disputes...", fontSize = 13.sp) },
+                            placeholder = { Text("Search farms, farmers, incidents...", fontSize = 13.sp) },
                             singleLine = true,
                             colors = TextFieldDefaults.colors(
                                 focusedContainerColor = Color.Transparent,
@@ -691,9 +607,7 @@ fun AllFarmsMapScreen(
                 ) {
                     val allCount = allEntities.size
                     val farmsCount = allEntities.count { it.type == MapEntityType.FARM }
-                    val farmersCount = allEntities.count { it.type == MapEntityType.FARMER }
                     val incidentsCount = allEntities.count { it.type == MapEntityType.INCIDENT }
-                    val disputesCount = allEntities.count { it.type == MapEntityType.DISPUTE }
                     val myItemsCount = allEntities.count { it.userId == currentUid && currentUid.isNotBlank() }
 
                     FilterChip(
@@ -709,22 +623,10 @@ fun AllFarmsMapScreen(
                         leadingIcon = { Icon(Icons.Default.Agriculture, contentDescription = null, modifier = Modifier.size(14.dp)) }
                     )
                     FilterChip(
-                        selected = selectedFilter == "FARMERS",
-                        onClick = { selectedFilter = "FARMERS" },
-                        label = { Text("🧑‍🌾 Farmers ($farmersCount)", fontSize = 11.sp) },
-                        leadingIcon = { Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(14.dp)) }
-                    )
-                    FilterChip(
                         selected = selectedFilter == "INCIDENTS",
                         onClick = { selectedFilter = "INCIDENTS" },
                         label = { Text("🔴 Incidents ($incidentsCount)", fontSize = 11.sp) },
                         leadingIcon = { Icon(Icons.Default.Warning, contentDescription = null, modifier = Modifier.size(14.dp)) }
-                    )
-                    FilterChip(
-                        selected = selectedFilter == "DISPUTES",
-                        onClick = { selectedFilter = "DISPUTES" },
-                        label = { Text("⚖️ Disputes ($disputesCount)", fontSize = 11.sp) },
-                        leadingIcon = { Icon(Icons.Default.ReportProblem, contentDescription = null, modifier = Modifier.size(14.dp)) }
                     )
                     FilterChip(
                         selected = selectedFilter == "MY_ITEMS",
@@ -765,7 +667,6 @@ fun AllFarmsMapScreen(
                                     MapEntityType.FARM -> Pair(Icons.Default.Agriculture, Color(0xFF2E7D32))
                                     MapEntityType.FARMER -> Pair(Icons.Default.Person, Color(0xFF0288D1))
                                     MapEntityType.INCIDENT -> Pair(Icons.Default.Warning, Color(0xFFD32F2F))
-                                    MapEntityType.DISPUTE -> Pair(Icons.Default.ReportProblem, Color(0xFFE65100))
                                 }
                                 Icon(typeIcon, contentDescription = null, tint = typeColor, modifier = Modifier.size(26.dp))
                                 Spacer(modifier = Modifier.width(8.dp))
@@ -780,57 +681,35 @@ fun AllFarmsMapScreen(
                             }
 
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                if (entity.type == MapEntityType.FARM && !isOwnItem) {
-                                    IconButton(
-                                        onClick = {
-                                            disputingTarget = entity
-                                            disputeDescription = ""
-                                            showDisputeDialog = true
-                                        },
-                                        modifier = Modifier.size(32.dp)
-                                    ) {
-                                        Icon(
-                                            Icons.Default.Report,
-                                            contentDescription = "Report Farm",
-                                            tint = Color(0xFFD32F2F),
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                    }
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                }
-
                                 // Type Tag Pill
                                 Surface(
-                                color = when (entity.type) {
-                                    MapEntityType.FARM -> if (isOwnItem) Color(0xFFE1F5FE) else Color(0xFFE8F5E9)
-                                    MapEntityType.FARMER -> Color(0xFFE0F7FA)
-                                    MapEntityType.INCIDENT -> Color(0xFFFFEBEE)
-                                    MapEntityType.DISPUTE -> Color(0xFFFFF3E0)
-                                },
-                                shape = RoundedCornerShape(12.dp)
-                            ) {
-                                Text(
-                                    text = when (entity.type) {
-                                        MapEntityType.FARM -> if (isOwnItem) "My Farm Plot" else "Farm Plot"
-                                        MapEntityType.FARMER -> if (entity.isVerified) "Verified Farmer" else "Farmer"
-                                        MapEntityType.INCIDENT -> "Incident Report"
-                                        MapEntityType.DISPUTE -> "Land Dispute"
-                                    },
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
                                     color = when (entity.type) {
-                                        MapEntityType.FARM -> if (isOwnItem) Color(0xFF0277BD) else Color(0xFF2E7D32)
-                                        MapEntityType.FARMER -> Color(0xFF00838F)
-                                        MapEntityType.INCIDENT -> Color(0xFFC62828)
-                                        MapEntityType.DISPUTE -> Color(0xFFEF6C00)
+                                        MapEntityType.FARM -> if (isOwnItem) Color(0xFFE1F5FE) else Color(0xFFE8F5E9)
+                                        MapEntityType.FARMER -> Color(0xFFE0F7FA)
+                                        MapEntityType.INCIDENT -> Color(0xFFFFEBEE)
                                     },
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                )
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Text(
+                                        text = when (entity.type) {
+                                            MapEntityType.FARM -> if (isOwnItem) "My Farm Plot" else "Farm Plot"
+                                            MapEntityType.FARMER -> if (entity.isVerified) "Verified Farmer" else "Farmer"
+                                            MapEntityType.INCIDENT -> "Incident Report"
+                                        },
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = when (entity.type) {
+                                            MapEntityType.FARM -> if (isOwnItem) Color(0xFF0277BD) else Color(0xFF2E7D32)
+                                            MapEntityType.FARMER -> Color(0xFF00838F)
+                                            MapEntityType.INCIDENT -> Color(0xFFC62828)
+                                        },
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                    )
+                                }
                             }
                         }
-                    }
 
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
                         // Images Carousel
                         if (entity.imageUrls.isNotEmpty()) {
@@ -918,26 +797,6 @@ fun AllFarmsMapScreen(
                                     Text(entity.description, style = MaterialTheme.typography.bodySmall, maxLines = 3)
                                 }
                             }
-                            MapEntityType.DISPUTE -> {
-                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                    Column {
-                                        Text("Suspect Claimant", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
-                                        Text(entity.ownerOrReporter, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
-                                    }
-                                    Column {
-                                        Text("Category", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
-                                        Text(entity.category, style = MaterialTheme.typography.bodyMedium, maxLines = 1)
-                                    }
-                                    Column {
-                                        Text("Status", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
-                                        Text(entity.status, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = Color(0xFFE65100))
-                                    }
-                                }
-                                if (entity.description.isNotBlank()) {
-                                    Spacer(modifier = Modifier.height(6.dp))
-                                    Text("Dispute Details: ${entity.description}", style = MaterialTheme.typography.bodySmall, maxLines = 3)
-                                }
-                            }
                         }
 
                         Spacer(modifier = Modifier.height(6.dp))
@@ -955,27 +814,6 @@ fun AllFarmsMapScreen(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            if (entity.type == MapEntityType.FARM && !isOwnItem) {
-                                Button(
-                                    onClick = {
-                                        disputingTarget = entity
-                                        disputeDescription = ""
-                                        disputeCategory = "Unauthorized Farm Tagging / Land Dispute"
-                                        showDisputeDialog = true
-                                    },
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = Color(0xFFD32F2F),
-                                        contentColor = Color.White
-                                    ),
-                                    shape = RoundedCornerShape(10.dp),
-                                    modifier = Modifier.weight(1f)
-                                ) {
-                                    Icon(Icons.Default.Report, contentDescription = "Report", modifier = Modifier.size(18.dp), tint = Color.White)
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text("REPORT", fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                                }
-                            }
-
                             FilledTonalIconButton(
                                 onClick = {
                                     cameraPositionState.position = CameraPosition.fromLatLngZoom(entity.location, 16f)
@@ -987,7 +825,7 @@ fun AllFarmsMapScreen(
                             OutlinedButton(
                                 onClick = { selectedEntity = null },
                                 shape = RoundedCornerShape(10.dp),
-                                modifier = if (entity.type != MapEntityType.FARM || isOwnItem) Modifier.weight(1f) else Modifier
+                                modifier = Modifier.weight(1f)
                             ) {
                                 Text("CLOSE")
                             }
@@ -996,425 +834,5 @@ fun AllFarmsMapScreen(
                 }
             }
         }
-    }
-
-    // Report Farm Dialog
-    if (showDisputeDialog) {
-        val target = disputingTarget ?: allEntities.firstOrNull { it.type == MapEntityType.FARM }
-        var manualFarmName by remember { mutableStateOf(target?.title ?: "") }
-        var manualClaimedOwner by remember { mutableStateOf(target?.ownerOrReporter ?: "") }
-        var hasAgreedToLegalTerms by remember { mutableStateOf(false) }
-
-        AlertDialog(
-            onDismissRequest = {
-                if (!isSubmittingDispute) {
-                    showDisputeDialog = false
-                }
-            },
-            icon = {
-                Icon(
-                    imageVector = Icons.Default.Report,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.size(32.dp)
-                )
-            },
-            title = {
-                Text(
-                    text = "Report Farm",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
-            },
-            text = {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .verticalScroll(rememberScrollState())
-                ) {
-                    if (target != null) {
-                        Surface(
-                            color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.35f),
-                            shape = RoundedCornerShape(8.dp),
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.5f)),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Column(modifier = Modifier.padding(10.dp)) {
-                                Text(
-                                    text = "Disputed Entity: ${target.title}",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 13.sp,
-                                    color = MaterialTheme.colorScheme.error
-                                )
-                                Text(
-                                    text = "Claimed Owner: ${target.ownerOrReporter}",
-                                    fontSize = 12.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Text(
-                                    text = "Coordinates: ${String.format(Locale.US, "%.4f, %.4f", target.location.latitude, target.location.longitude)}",
-                                    fontSize = 11.sp,
-                                    color = Color.Gray
-                                )
-                            }
-                        }
-                    } else {
-                        OutlinedTextField(
-                            value = manualFarmName,
-                            onValueChange = { manualFarmName = it },
-                            label = { Text("Disputed Farm Name / Location") },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        OutlinedTextField(
-                            value = manualClaimedOwner,
-                            onValueChange = { manualClaimedOwner = it },
-                            label = { Text("Claimed Farmer (Suspect)") },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(14.dp))
-
-                    Text(
-                        text = "Reason for Report / Violation:",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-
-                    Box(modifier = Modifier.fillMaxWidth()) {
-                        OutlinedButton(
-                            onClick = { showCategoryDropdown = true },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(8.dp)
-                        ) {
-                            Text(
-                                text = disputeCategory,
-                                style = MaterialTheme.typography.bodySmall,
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
-                        DropdownMenu(
-                            expanded = showCategoryDropdown,
-                            onDismissRequest = { showCategoryDropdown = false }
-                        ) {
-                            disputeCategories.forEach { category ->
-                                DropdownMenuItem(
-                                    text = { Text(category, fontSize = 13.sp) },
-                                    onClick = {
-                                        disputeCategory = category
-                                        showCategoryDropdown = false
-                                    }
-                                )
-                            }
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(14.dp))
-
-                    Text(
-                        text = "Explanation & Ownership Details:",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    OutlinedTextField(
-                        value = disputeDescription,
-                        onValueChange = { disputeDescription = it },
-                        placeholder = {
-                            Text(
-                                "Describe the land dispute or fraud details (e.g. \"This parcel is my legitimate property under Title/Tax Dec #... but someone falsely tagged it.\")",
-                                fontSize = 12.sp
-                            )
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        minLines = 3,
-                        maxLines = 6
-                    )
-
-                    Spacer(modifier = Modifier.height(10.dp))
-                    Surface(
-                        color = MaterialTheme.colorScheme.surfaceVariant,
-                        shape = RoundedCornerShape(6.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(modifier = Modifier.padding(8.dp)) {
-                            Text(
-                                text = "Complainant Info (Submitted to DA):",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = "• Name: ${userViewModel.farmerName.value.ifBlank { "Registered Farmer" }}",
-                                fontSize = 11.sp
-                            )
-                            Text(
-                                text = "• Contact: ${userViewModel.farmerPhone.value.ifBlank { "Active Contact" }}",
-                                fontSize = 11.sp
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(14.dp))
-
-                    // Legal Notice, Rules & Philippine Laws Agreement Box
-                    Surface(
-                        color = Color(0xFFFFF3E0),
-                        shape = RoundedCornerShape(10.dp),
-                        border = BorderStroke(1.dp, Color(0xFFFFB74D)),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(modifier = Modifier.padding(12.dp)) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Security,
-                                    contentDescription = null,
-                                    tint = Color(0xFFE65100),
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = "Legal Terms, Rules & Applicable Laws",
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFFE65100)
-                                )
-                            }
-
-                            Spacer(modifier = Modifier.height(6.dp))
-
-                            Text(
-                                text = "Filing a formal farm dispute or fraud report is an official administrative proceeding. Please review the governing Philippine laws and DA regulations below:",
-                                style = MaterialTheme.typography.bodySmall,
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = Color(0xFF3E2723)
-                            )
-
-                            Spacer(modifier = Modifier.height(8.dp))
-
-                            // 1. RA 3815 (Perjury)
-                            Surface(
-                                color = Color.White.copy(alpha = 0.9f),
-                                shape = RoundedCornerShape(6.dp),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Column(modifier = Modifier.padding(8.dp)) {
-                                    Text(
-                                        text = "⚖️ Revised Penal Code (Art. 183 - Perjury & False Testimony)",
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 11.sp,
-                                        color = Color(0xFFB71C1C)
-                                    )
-                                    Text(
-                                        text = "Knowingly submitting a false, malicious, or fabricated farm dispute under oath or in official government filings constitutes criminal perjury punishable by imprisonment under Philippine law.",
-                                        fontSize = 10.5.sp,
-                                        lineHeight = 14.sp,
-                                        color = Color(0xFF424242)
-                                    )
-                                }
-                            }
-
-                            Spacer(modifier = Modifier.height(6.dp))
-
-                            // 2. RA 10175 (Cybercrime Prevention Act)
-                            Surface(
-                                color = Color.White.copy(alpha = 0.9f),
-                                shape = RoundedCornerShape(6.dp),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Column(modifier = Modifier.padding(8.dp)) {
-                                    Text(
-                                        text = "🌐 Cybercrime Prevention Act of 2012 (R.A. 10175)",
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 11.sp,
-                                        color = Color(0xFFB71C1C)
-                                    )
-                                    Text(
-                                        text = "Prohibits computerized fraud, intentional tampering or falsification of digital farm geotags, and cyber-harassment against legitimate land claimants through digital systems.",
-                                        fontSize = 10.5.sp,
-                                        lineHeight = 14.sp,
-                                        color = Color(0xFF424242)
-                                    )
-                                }
-                            }
-
-                            Spacer(modifier = Modifier.height(6.dp))
-
-                            // 3. DA RSBSA Regulations & Penalties
-                            Surface(
-                                color = Color.White.copy(alpha = 0.9f),
-                                shape = RoundedCornerShape(6.dp),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Column(modifier = Modifier.padding(8.dp)) {
-                                    Text(
-                                        text = "🌾 DA Administrative Orders & RSBSA Regulations",
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 11.sp,
-                                        color = Color(0xFFB71C1C)
-                                    )
-                                    Text(
-                                        text = "Frivolous reports filed to disrupt legitimate farmers will lead to immediate cancellation of DA seed/fertilizer subsidies, revocation of RSBSA registry, and blacklisting from DA programs.",
-                                        fontSize = 10.5.sp,
-                                        lineHeight = 14.sp,
-                                        color = Color(0xFF424242)
-                                    )
-                                }
-                            }
-
-                            Spacer(modifier = Modifier.height(6.dp))
-
-                            // 4. Ground Adjudication Protocol
-                            Surface(
-                                color = Color.White.copy(alpha = 0.9f),
-                                shape = RoundedCornerShape(6.dp),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Column(modifier = Modifier.padding(8.dp)) {
-                                    Text(
-                                        text = "📍 Field Investigation & Agrarian Adjudication",
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 11.sp,
-                                        color = Color(0xFFB71C1C)
-                                    )
-                                    Text(
-                                        text = "All submitted disputes trigger a mandatory physical land audit by the DA Municipal Agriculture Office (MAO) and the Barangay Agrarian Reform Committee (BARC).",
-                                        fontSize = 10.5.sp,
-                                        lineHeight = 14.sp,
-                                        color = Color(0xFF424242)
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // Agreement Checkbox
-                    Surface(
-                        color = if (hasAgreedToLegalTerms) Color(0xFFE8F5E9) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                        shape = RoundedCornerShape(8.dp),
-                        border = BorderStroke(1.dp, if (hasAgreedToLegalTerms) Color(0xFF4CAF50) else MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(8.dp))
-                            .clickable { hasAgreedToLegalTerms = !hasAgreedToLegalTerms }
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
-                        ) {
-                            Checkbox(
-                                checked = hasAgreedToLegalTerms,
-                                onCheckedChange = { hasAgreedToLegalTerms = it }
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "I have read, understood, and agreed to the legal terms, rules, and laws. I solemnly swear under penalty of perjury (RA 3815) that this report is true, lawful, and submitted in good faith.",
-                                style = MaterialTheme.typography.bodySmall,
-                                fontSize = 11.sp,
-                                lineHeight = 15.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = if (hasAgreedToLegalTerms) Color(0xFF1B5E20) else MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        if (disputeDescription.isBlank()) {
-                            Toast.makeText(context, "Please provide an explanation or proof description", Toast.LENGTH_SHORT).show()
-                            return@Button
-                        }
-                        if (!hasAgreedToLegalTerms) {
-                            Toast.makeText(context, "You must agree to the legal terms and laws before submitting.", Toast.LENGTH_LONG).show()
-                            return@Button
-                        }
-                        isSubmittingDispute = true
-                        val targetUserId = target?.userId ?: ""
-                        val record = hashMapOf<String, Any>(
-                            "farmId" to (target?.id ?: ""),
-                            "farmName" to (target?.title ?: manualFarmName.ifBlank { "Disputed Farm Parcel" }),
-                            "farmOwner" to (target?.ownerOrReporter ?: manualClaimedOwner.ifBlank { "Suspect Claimant" }),
-                            "farmUserId" to targetUserId,
-                            "farmerId" to targetUserId,
-                            "cropType" to (target?.cropType ?: "Unspecified"),
-                            "farmSize" to (target?.size ?: "N/A"),
-                            "latitude" to (target?.location?.latitude ?: 12.8797),
-                            "longitude" to (target?.location?.longitude ?: 121.7740),
-                            "category" to disputeCategory,
-                            "reportCategory" to disputeCategory,
-                            "description" to disputeDescription,
-                            "reporterId" to currentUid,
-                            "reporterName" to userViewModel.farmerName.value.ifBlank { "Registered Farmer" },
-                            "reporterPhone" to userViewModel.farmerPhone.value,
-                            "reporterEmail" to userViewModel.farmerEmail.value,
-                            "agreedToLegalTerms" to true,
-                            "legalSwornDeclaration" to "Sworn under RA 3815 (Perjury) and RA 10175 (Cybercrime Prevention Act)",
-                            "legalNoticeVersion" to "2026.1-DA-PH",
-                            "status" to "Pending Investigation",
-                            "farmerNotified" to true,
-                            "farmerDisputed" to false,
-                            "farmerDisputeExplanation" to "",
-                            "farmerDisputeEvidence" to "",
-                            "timestamp" to Timestamp.now(),
-                            "created_at" to Timestamp.now()
-                        )
-                        db.collection("farm_disputes").add(record)
-                            .addOnSuccessListener {
-                                isSubmittingDispute = false
-                                showDisputeDialog = false
-
-                                // Automatically notify the registered farm owner so they can dispute if false/fraudulent
-                                if (targetUserId.isNotBlank()) {
-                                    val notif = hashMapOf<String, Any>(
-                                        "userId" to targetUserId,
-                                        "recipientId" to targetUserId,
-                                        "type" to "FARM_REPORTED",
-                                        "title" to "⚠️ Farm Report Alert",
-                                        "message" to "Your farm '${record["farmName"]}' has been reported to the DA for: $disputeCategory. You have the right to respond and contest if fraudulent.",
-                                        "farmId" to (target?.id ?: ""),
-                                        "farmName" to (record["farmName"] ?: ""),
-                                        "disputeCategory" to disputeCategory,
-                                        "description" to disputeDescription,
-                                        "timestamp" to Timestamp.now(),
-                                        "read" to false
-                                    )
-                                    db.collection("notifications").add(notif)
-                                }
-
-                                Toast.makeText(context, "Report submitted to DA. The farm owner has been notified and may file a counter-dispute.", Toast.LENGTH_LONG).show()
-                            }
-                            .addOnFailureListener { e ->
-                                isSubmittingDispute = false
-                                Toast.makeText(context, "Failed to submit: ${e.message}", Toast.LENGTH_SHORT).show()
-                            }
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
-                    enabled = !isSubmittingDispute && hasAgreedToLegalTerms && disputeDescription.isNotBlank()
-                ) {
-                    if (isSubmittingDispute) {
-                        CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Color.White)
-                    } else {
-                        Text("SUBMIT REPORT")
-                    }
-                }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = { showDisputeDialog = false },
-                    enabled = !isSubmittingDispute
-                ) {
-                    Text("CANCEL")
-                }
-            }
-        )
     }
 }

@@ -60,9 +60,9 @@ fun ForgotPasswordScreen(
     var passwordVisible by remember { mutableStateOf(false) }
     var confirmPasswordVisible by remember { mutableStateOf(false) }
 
-    val primaryGreen = Color(0xFF2E7D32)
-    val darkGreen = Color(0xFF1B5E20)
-    val lightGreenBg = Color(0xFFF1F8E9)
+    val primaryGreen = MaterialTheme.colorScheme.primary
+    val darkGreen = MaterialTheme.colorScheme.onSurface
+    val lightGreenBg = MaterialTheme.colorScheme.primaryContainer
 
     Scaffold(
         topBar = {
@@ -71,7 +71,7 @@ fun ForgotPasswordScreen(
                     Text(
                         text = "Forgot Password",
                         fontWeight = FontWeight.Bold,
-                        color = Color.White
+                        color = MaterialTheme.colorScheme.onPrimary
                     )
                 },
                 navigationIcon = {
@@ -79,7 +79,7 @@ fun ForgotPasswordScreen(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",
-                            tint = Color.White
+                            tint = MaterialTheme.colorScheme.onPrimary
                         )
                     }
                 },
@@ -88,7 +88,7 @@ fun ForgotPasswordScreen(
                 )
             )
         },
-        containerColor = Color(0xFFF9FBF8)
+        containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -128,7 +128,7 @@ fun ForgotPasswordScreen(
             Text(
                 text = "Verify your identity via 6-digit OTP code sent directly to your phone or email.",
                 fontSize = 13.sp,
-                color = Color.Gray,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
             )
@@ -141,7 +141,7 @@ fun ForgotPasswordScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(bottom = 16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFFEBEE)),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Row(
@@ -151,12 +151,12 @@ fun ForgotPasswordScreen(
                         Icon(
                             imageVector = Icons.Default.ErrorOutline,
                             contentDescription = null,
-                            tint = Color(0xFFD32F2F)
+                            tint = MaterialTheme.colorScheme.error
                         )
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(
                             text = errorMessage ?: "",
-                            color = Color(0xFFC62828),
+                            color = MaterialTheme.colorScheme.onErrorContainer,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Medium
                         )
@@ -170,7 +170,7 @@ fun ForgotPasswordScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(bottom = 16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFFE8F5E9)),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Row(
@@ -185,7 +185,7 @@ fun ForgotPasswordScreen(
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(
                             text = statusMessage ?: "",
-                            color = darkGreen,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Medium
                         )
@@ -198,7 +198,7 @@ fun ForgotPasswordScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
                     Column(modifier = Modifier.padding(20.dp)) {
@@ -216,7 +216,7 @@ fun ForgotPasswordScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(10.dp))
-                                .background(Color(0xFFF0F4F0))
+                                .background(MaterialTheme.colorScheme.surfaceVariant)
                                 .padding(4.dp)
                         ) {
                             // Email Option
@@ -233,7 +233,7 @@ fun ForgotPasswordScreen(
                                     Icon(
                                         imageVector = Icons.Default.Email,
                                         contentDescription = null,
-                                        tint = if (channel == "email") Color.White else Color.Gray,
+                                        tint = if (channel == "email") MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier.size(16.dp)
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
@@ -241,7 +241,7 @@ fun ForgotPasswordScreen(
                                         text = "Email Address",
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = if (channel == "email") Color.White else Color(0xFF424242)
+                                        color = if (channel == "email") MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
                             }
@@ -260,7 +260,7 @@ fun ForgotPasswordScreen(
                                     Icon(
                                         imageVector = Icons.Default.PhoneAndroid,
                                         contentDescription = null,
-                                        tint = if (channel == "sms") Color.White else Color.Gray,
+                                        tint = if (channel == "sms") MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier.size(16.dp)
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
@@ -268,7 +268,7 @@ fun ForgotPasswordScreen(
                                         text = "Phone Number",
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = if (channel == "sms") Color.White else Color(0xFF424242)
+                                        color = if (channel == "sms") MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
                             }
@@ -350,7 +350,7 @@ fun ForgotPasswordScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
                     Column(modifier = Modifier.padding(20.dp)) {
@@ -546,7 +546,7 @@ fun ForgotPasswordScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
                     Column(
@@ -559,7 +559,7 @@ fun ForgotPasswordScreen(
                             modifier = Modifier
                                 .size(80.dp)
                                 .clip(CircleShape)
-                                .background(Color(0xFFE8F5E9)),
+                                .background(MaterialTheme.colorScheme.primaryContainer),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
@@ -585,7 +585,7 @@ fun ForgotPasswordScreen(
                         Text(
                             text = "Your password has been successfully updated. You can now log into your AgriServe farmer account using your new password.",
                             fontSize = 13.sp,
-                            color = Color(0xFF616161),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center,
                             lineHeight = 18.sp
                         )

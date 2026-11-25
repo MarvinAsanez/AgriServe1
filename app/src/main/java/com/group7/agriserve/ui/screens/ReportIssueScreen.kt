@@ -10,7 +10,6 @@ import android.text.format.DateFormat
 import android.util.Base64
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.foundation.BorderStroke
@@ -52,12 +51,21 @@ import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
+import com.group7.agriserve.util.InsurancePdfHelper
 import com.group7.agriserve.util.NetworkUtils
 import com.group7.agriserve.util.SessionManager
 import com.group7.agriserve.viewmodel.UserViewModel
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.util.UUID
+
+private data class TaggedFarmChoice(
+    val id: String,
+    val farmName: String,
+    val cropType: String,
+    val farmSize: String,
+    val farmAddress: String
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -88,6 +96,26 @@ fun ReportIssueScreen(
     var selectedCategory by remember { mutableStateOf("Pest Infestation") }
     var selectedSeverity by remember { mutableStateOf("Moderate / Needs Aid") }
     var reportDescription by remember { mutableStateOf("") }
+    var taggedFarms by remember { mutableStateOf<List<TaggedFarmChoice>>(emptyList()) }
+    var isFarmsLoading by remember { mutableStateOf(true) }
+    var selectedFarm by remember { mutableStateOf<TaggedFarmChoice?>(null) }
+    var reportFormType by remember { mutableStateOf("") } // Determined by selected tagged farm ("CLAIM_INDEMNITY" or "HVCI")
+    var cropType by remember { mutableStateOf("") }
+    var varietyPlanted by remember { mutableStateOf("") }
+    var dateOfLoss by remember { mutableStateOf(DateFormat.format("MM/dd/yyyy", java.util.Date()).toString()) }
+    var expectedHarvestDate by remember { mutableStateOf("") }
+    var extentOfDamage by remember { mutableStateOf("") }
+    var policyNo by remember { mutableStateOf("") }
+    var areaInsured by remember { mutableStateOf("") }
+    var areaDamaged by remember { mutableStateOf("") }
+    var plantingDate by remember { mutableStateOf("") }
+    var cropStage by remember { mutableStateOf("") }
+    var programType by remember { mutableStateOf("RSBSA") }
+    var policyType by remember { mutableStateOf("High-Value Crop") }
+    var adjacentNorth by remember { mutableStateOf("") }
+    var adjacentSouth by remember { mutableStateOf("") }
+    var adjacentEast by remember { mutableStateOf("") }
+    var adjacentWest by remember { mutableStateOf("") }
     var selectedImageUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
     var isUploading by remember { mutableStateOf(false) }
 
@@ -102,8 +130,8 @@ fun ReportIssueScreen(
 
     // Dialog & Preview States
     var tempImageUri by remember { mutableStateOf<Uri?>(null) }
-    var showImageSourceDialog by remember { mutableStateOf(false) }
     var previewImageUrl by remember { mutableStateOf<String?>(null) }
+    var selectedInsuranceGuideReport by remember { mutableStateOf<Map<String, Any>?>(null) }
     var categoryExpanded by remember { mutableStateOf(false) }
 
     val categories = listOf(
@@ -142,8 +170,55 @@ fun ReportIssueScreen(
                     }
                     isHistoryLoading = false
                 }
+
+            // Load farmer's tagged farms (only their tagged farms appear as damage choices)
+            isFarmsLoading = true
+            firestore.collection("farms")
+                .whereEqualTo("userId", uid)
+                .get()
+                .addOnSuccessListener { snap ->
+                    val list = snap.documents.map { d ->
+                        TaggedFarmChoice(
+                            id = d.id,
+                            farmName = d.getString("farmName") ?: "",
+                            cropType = d.getString("cropType") ?: "",
+                            farmSize = d.getString("farmSize") ?: "",
+                            farmAddress = d.getString("farmAddress") ?: ""
+                        )
+                    }.toMutableList()
+                    if (list.none { it.id == uid }) {
+                        firestore.collection("farms").document(uid).get()
+                            .addOnSuccessListener { legacy ->
+                                if (legacy.exists()) {
+                                    list.add(
+                                        0,
+                                        TaggedFarmChoice(
+                                            id = legacy.id,
+                                            farmName = legacy.getString("farmName") ?: "",
+                                            cropType = legacy.getString("cropType") ?: "",
+                                            farmSize = legacy.getString("farmSize") ?: "",
+                                            farmAddress = legacy.getString("farmAddress") ?: ""
+                                        )
+                                    )
+                                }
+                                taggedFarms = list
+                                isFarmsLoading = false
+                            }
+                            .addOnFailureListener {
+                                taggedFarms = list
+                                isFarmsLoading = false
+                            }
+                    } else {
+                        taggedFarms = list
+                        isFarmsLoading = false
+                    }
+                }
+                .addOnFailureListener {
+                    isFarmsLoading = false
+                }
         } else {
             isHistoryLoading = false
+            isFarmsLoading = false
         }
     }
 
@@ -190,15 +265,6 @@ fun ReportIssueScreen(
         }
     }
 
-    val imagePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.PickMultipleVisualMedia(maxItems = 5)
-    ) { uris ->
-        if (uris.isNotEmpty()) {
-            val combined = (selectedImageUris + uris).distinct().take(5)
-            selectedImageUris = combined
-        }
-    }
-
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicture()
     ) { success ->
@@ -219,6 +285,15 @@ fun ReportIssueScreen(
     }
 
     fun performSubmission(location: Location?) {
+        if (selectedFarm == null) {
+            Toast.makeText(
+                context,
+                if (taggedFarms.isEmpty()) "Please tag your farm in Farm Tagging first before reporting." else "Please select which of your tagged farms was damaged.",
+                Toast.LENGTH_LONG
+            ).show()
+            isUploading = false
+            return
+        }
         if (selectedImageUris.isEmpty()) {
             Toast.makeText(context, "Please attach at least one photo of the incident", Toast.LENGTH_SHORT).show()
             isUploading = false
@@ -250,15 +325,43 @@ fun ReportIssueScreen(
         }
 
         fun saveReportToFirestore(urls: List<String>, offlineSaved: Boolean) {
+            val autoDescription = reportDescription.ifBlank {
+                if (reportFormType == "CLAIM_INDEMNITY") {
+                    "$selectedCategory on $cropType${if (varietyPlanted.isNotBlank()) " ($varietyPlanted)" else ""} — ${extentOfDamage.ifBlank { "damaged" }} (${areaDamaged.ifBlank { "unspecified" }} ha)"
+                } else {
+                    "$selectedCategory on $cropType${if (varietyPlanted.isNotBlank()) " ($varietyPlanted)" else ""} — ${extentOfDamage.ifBlank { "damaged" }}"
+                }
+            }
             val reportData = hashMapOf(
                 "reportId" to reportId,
                 "farmerId" to uid,
                 "userId" to uid,
                 "farmerName" to farmerName,
                 "contact" to contactNumber,
+                "farmId" to (selectedFarm?.id ?: ""),
+                "farmName" to (selectedFarm?.farmName ?: ""),
+                "address" to (selectedFarm?.farmAddress ?: ""),
                 "category" to selectedCategory,
                 "severity" to selectedSeverity,
-                "description" to reportDescription,
+                "description" to autoDescription,
+                "insuranceFormType" to reportFormType,
+                "cropType" to cropType,
+                "varietyPlanted" to varietyPlanted,
+                "dateOfLoss" to dateOfLoss,
+                "expectedHarvestDate" to expectedHarvestDate,
+                "extentOfDamage" to extentOfDamage,
+                "policyNo" to policyNo,
+                "insurancePolicyNo" to policyNo,
+                "areaInsured" to areaInsured,
+                "areaDamaged" to areaDamaged,
+                "plantingDate" to plantingDate,
+                "cropStage" to cropStage,
+                "programType" to programType,
+                "policyType" to policyType,
+                "adjacentNorth" to adjacentNorth,
+                "adjacentSouth" to adjacentSouth,
+                "adjacentEast" to adjacentEast,
+                "adjacentWest" to adjacentWest,
                 "imageUrls" to urls,
                 "status" to "Pending",
                 "isOffline" to offlineSaved,
@@ -269,26 +372,34 @@ fun ReportIssueScreen(
                 "hasGeotag" to (location != null || liveLocation != null)
             )
 
-            firestore.collection("reports").document(reportId).set(reportData)
-                .addOnSuccessListener {
-                    isUploading = false
-                    val msg = if (offlineSaved)
-                        "Report Saved Locally! Will sync to DA when online."
-                    else "Incident Report Submitted Successfully!"
-                    Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
-
-                    // Reset Form
-                    reportDescription = ""
-                    selectedImageUris = emptyList()
-                    selectedTab = 1 // Switch to history tab to view newly queued report
-                }
-                .addOnFailureListener {
-                    isUploading = false
-                    Toast.makeText(context, "Report stored offline. Will sync to DA automatically.", Toast.LENGTH_LONG).show()
-                    reportDescription = ""
-                    selectedImageUris = emptyList()
-                    selectedTab = 1
-                }
+            val writeTask = firestore.collection("reports").document(reportId).set(reportData)
+            if (offlineSaved || !NetworkUtils.isOnline(context)) {
+                isUploading = false
+                Toast.makeText(
+                    context,
+                    "Report saved offline! Waiting for internet; will sync to DA automatically when back online.",
+                    Toast.LENGTH_LONG
+                ).show()
+                reportDescription = ""
+                selectedImageUris = emptyList()
+                selectedTab = 1
+            } else {
+                writeTask
+                    .addOnSuccessListener {
+                        isUploading = false
+                        Toast.makeText(context, "Incident Report Submitted Successfully!", Toast.LENGTH_LONG).show()
+                        reportDescription = ""
+                        selectedImageUris = emptyList()
+                        selectedTab = 1
+                    }
+                    .addOnFailureListener {
+                        isUploading = false
+                        Toast.makeText(context, "Report stored offline. Will sync to DA automatically.", Toast.LENGTH_LONG).show()
+                        reportDescription = ""
+                        selectedImageUris = emptyList()
+                        selectedTab = 1
+                    }
+            }
         }
 
         if (!isOnline) {
@@ -326,6 +437,25 @@ fun ReportIssueScreen(
     @SuppressLint("MissingPermission")
     fun captureLocationAndSubmit() {
         isUploading = true
+        if (!NetworkUtils.isOnline(context)) {
+            if (liveLocation != null) {
+                performSubmission(liveLocation)
+                return
+            }
+            try {
+                fusedLocationClient.lastLocation
+                    .addOnSuccessListener { lastLoc ->
+                        liveLocation = lastLoc
+                        performSubmission(lastLoc)
+                    }
+                    .addOnFailureListener {
+                        performSubmission(null)
+                    }
+            } catch (_: SecurityException) {
+                performSubmission(null)
+            }
+            return
+        }
         try {
             val cts = CancellationTokenSource()
             fusedLocationClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, cts.token)
@@ -356,46 +486,136 @@ fun ReportIssueScreen(
         }
     }
 
-    // Modal: Image Source Selection
-    if (showImageSourceDialog) {
+    // Modal: PCIC Crop Insurance Filing Guide & Checklist
+    selectedInsuranceGuideReport?.let { rep ->
+        val category = rep["category"]?.toString() ?: ""
+        val description = rep["description"]?.toString() ?: ""
+        val rawFormType = rep["insuranceFormType"]?.toString()
+        val formType = InsurancePdfHelper.detectFormType(rawFormType, category, description)
+        val isIndemnity = formType == "CLAIM_INDEMNITY"
+        val formTitle = if (isIndemnity) {
+            "RC-CAS-01 — Claim for Indemnity (Rice & Corn)"
+        } else {
+            "HVCI CAS Form No. 01 — Notice of Loss (High-Value Crops)"
+        }
+        val ts = rep["timestamp"] as? Timestamp
+        val dateStr = if (ts != null) DateFormat.format("MM/dd/yyyy", ts.toDate()).toString() else ""
+        val lat = rep["latitude"]
+        val lng = rep["longitude"]
+        val locStr = if (lat != null && lng != null) "$lat, $lng" else (rep["address"]?.toString() ?: "")
+
         AlertDialog(
-            onDismissRequest = { showImageSourceDialog = false },
+            onDismissRequest = { selectedInsuranceGuideReport = null },
             title = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.AddAPhoto, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Icon(Icons.Default.VerifiedUser, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Select Evidence Source", fontWeight = FontWeight.Bold)
+                    Text("Crop Insurance Filing Guide", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
                 }
             },
-            text = { Text("Choose whether to snap a new photo with your camera or select from your gallery.") },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 440.dp)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Text(
+                            text = "Assigned Form: $formTitle",
+                            modifier = Modifier.padding(10.dp),
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
+
+                    Text("1. How to Fill Up the Form", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                    if (isIndemnity) {
+                        Text(
+                            text = "• Header: Write the current Date and PCIC Regional Office.\n" +
+                                "• Part I (Basic Info): Fill in your Full Name, Address, Phone, Farm Location, check Palay or Corn, Area Insured (hectares), Variety Planted, Actual Planting Date, CIC Number, Cooperative/Underwriter, and check RSBSA (or your program).\n" +
+                                "• Part II (Damage Indicators): Enter Cause of Loss (e.g., Typhoon, Pest), Date of Loss, Age/Stage of Crop, Area Damaged (ha), Extent of Damage (%), and Expected Harvest Date.\n" +
+                                "• Part III (Location Sketch Plan): Write the names of adjacent farm owners on the North, South, East, and West sides of each lot.\n" +
+                                "• Sign over your printed name at the bottom.",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    } else {
+                        Text(
+                            text = "• Header: Enter your PCIC Regional Office No. and current Date.\n" +
+                                "• Policy Paragraph: Fill in Type of Policy (High-Value Crop), Insurance Policy No., and Crop Variety.\n" +
+                                "• Particulars (1–6): Verify/complete Farm Location, Nature/Cause of Loss, Date & Time of Loss, Extent of Loss/Damage, Expected Date of Harvest (if applicable), and Contact Number.\n" +
+                                "• Sign over your printed name as Insured/Claimant.",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+
+                    HorizontalDivider()
+                    Text("2. Where to Submit the Form", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                    Text(
+                        text = "Step 1 — Municipal Agriculture Office (MAO): Submit the signed form to your assigned DA Agricultural Technician / Municipal Agriculturist for official verification, damage validation, and endorsement.\n\n" +
+                            "Step 2 — Philippine Crop Insurance Corporation (PCIC) Regional Office: Once endorsed by MAO, submit the packet to the PCIC Regional Office / Claims & Adjustment Division (or via your MAO coordinator) for adjuster dispatch.",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+
+                    HorizontalDivider()
+                    Text("3. What to Bring Before Submitting", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                    Text(
+                        text = "✓ Printed & signed PCIC Form ($formTitle)\n" +
+                            "✓ Valid Government-Issued ID & RSBSA Enrollment ID/Stub\n" +
+                            "✓ PCIC Certificate of Insurance Coverage (CIC) / Policy Number\n" +
+                            "✓ Geotagged Field Damage Photos (captured in AgriServe)\n" +
+                            "✓ Resolved Incident Report Reference / Barangay or MAO Endorsement\n" +
+                            "✓ Ballpen (blue/black ink) for on-site verification signatures",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            },
             confirmButton = {
                 Button(
                     onClick = {
-                        showImageSourceDialog = false
-                        val uri = createImageUri()
-                        if (uri != null) {
-                            tempImageUri = uri
-                            cameraLauncher.launch(uri)
-                        }
-                    },
-                    shape = RoundedCornerShape(10.dp)
+                        InsurancePdfHelper.generateAndOpenForm(
+                            context,
+                            InsurancePdfHelper.InsuranceFormData(
+                                formType = formType,
+                                farmerName = rep["farmerName"]?.toString() ?: userViewModel.farmerName.value,
+                                contact = rep["contact"]?.toString() ?: userViewModel.farmerPhone.value,
+                                farmLocation = locStr,
+                                cropCategory = category,
+                                causeOfLoss = description,
+                                dateOfLoss = dateStr,
+                                regionalOffice = rep["insuranceRegionalOffice"]?.toString() ?: "",
+                                policyNo = rep["insurancePolicyNo"]?.toString() ?: rep["policyNo"]?.toString() ?: "",
+                                daNotes = rep["insuranceNotes"]?.toString() ?: "",
+                                varietyPlanted = rep["varietyPlanted"]?.toString() ?: "",
+                                areaInsured = rep["areaInsured"]?.toString() ?: "",
+                                areaDamaged = rep["areaDamaged"]?.toString() ?: "",
+                                plantingDate = rep["plantingDate"]?.toString() ?: "",
+                                cropStage = rep["cropStage"]?.toString() ?: "",
+                                programType = rep["programType"]?.toString() ?: "RSBSA",
+                                expectedHarvestDate = rep["expectedHarvestDate"]?.toString() ?: "",
+                                extentOfDamage = rep["extentOfDamage"]?.toString() ?: "",
+                                policyType = rep["policyType"]?.toString() ?: "High-Value Crop",
+                                adjacentNorth = rep["adjacentNorth"]?.toString() ?: "",
+                                adjacentSouth = rep["adjacentSouth"]?.toString() ?: "",
+                                adjacentEast = rep["adjacentEast"]?.toString() ?: "",
+                                adjacentWest = rep["adjacentWest"]?.toString() ?: ""
+                            )
+                        )
+                    }
                 ) {
-                    Icon(Icons.Default.PhotoCamera, null, modifier = Modifier.size(16.dp))
+                    Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("Take Photo")
+                    Text("Download PDF")
                 }
             },
             dismissButton = {
-                OutlinedButton(
-                    onClick = {
-                        showImageSourceDialog = false
-                        imagePickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-                    },
-                    shape = RoundedCornerShape(10.dp)
-                ) {
-                    Icon(Icons.Default.PhotoLibrary, null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("Browse Gallery")
+                TextButton(onClick = { selectedInsuranceGuideReport = null }) {
+                    Text("Close")
                 }
             }
         )
@@ -675,6 +895,97 @@ fun ReportIssueScreen(
                                     )
                                 }
 
+                                // 1. Select Damaged Tagged Farm (only the farmer's tagged farms are shown; none pre-selected)
+                                Text(
+                                    text = "Select Damaged Farm *",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                if (isFarmsLoading) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                                        Text("Loading your tagged farms...", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                                    }
+                                } else if (taggedFarms.isEmpty()) {
+                                    Surface(
+                                        color = Color(0xFFFFF3E0),
+                                        shape = RoundedCornerShape(10.dp),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Text(
+                                            text = "No tagged farms found. Please tag your farm(s) in Profile → Tag My Farm first so you can select which farm was damaged.",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = Color(0xFFE65100),
+                                            modifier = Modifier.padding(12.dp)
+                                        )
+                                    }
+                                } else {
+                                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        taggedFarms.forEachIndexed { idx, farm ->
+                                            val isPicked = selectedFarm?.id == farm.id
+                                            val detectedType = InsurancePdfHelper.detectFormType(null, farm.cropType, farm.farmName)
+                                            val displayName = farm.farmName.ifBlank { "Tagged Farm #${idx + 1}" }
+                                            val subtitle = listOfNotNull(
+                                                farm.cropType.takeIf { it.isNotBlank() },
+                                                farm.farmSize.takeIf { it.isNotBlank() }?.let { "$it ha" }
+                                            ).joinToString(" • ")
+
+                                            Surface(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .clickable {
+                                                        selectedFarm = farm
+                                                        cropType = farm.cropType.ifBlank { displayName }
+                                                        reportFormType = detectedType
+                                                        areaInsured = farm.farmSize
+                                                    },
+                                                shape = RoundedCornerShape(12.dp),
+                                                color = if (isPicked) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                                                border = BorderStroke(
+                                                    width = if (isPicked) 1.5.dp else 1.dp,
+                                                    color = if (isPicked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
+                                                )
+                                            ) {
+                                                Row(
+                                                    modifier = Modifier.padding(12.dp),
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.SpaceBetween
+                                                ) {
+                                                    Column(modifier = Modifier.weight(1f)) {
+                                                        Text(
+                                                            text = displayName,
+                                                            style = MaterialTheme.typography.bodyMedium,
+                                                            fontWeight = FontWeight.Bold
+                                                        )
+                                                        if (subtitle.isNotBlank()) {
+                                                            Text(
+                                                                text = subtitle,
+                                                                style = MaterialTheme.typography.labelSmall,
+                                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                            )
+                                                        }
+                                                    }
+                                                    Surface(
+                                                        color = if (isPicked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
+                                                        shape = RoundedCornerShape(8.dp)
+                                                    ) {
+                                                        Text(
+                                                            text = if (detectedType == "CLAIM_INDEMNITY") "Claim for Indemnity" else "HVCI Form",
+                                                            style = MaterialTheme.typography.labelSmall,
+                                                            color = if (isPicked) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                                            fontWeight = FontWeight.SemiBold,
+                                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
                                 // Category Dropdown
                                 ExposedDropdownMenuBox(
                                     expanded = categoryExpanded,
@@ -752,14 +1063,177 @@ fun ReportIssueScreen(
                                     }
                                 }
 
-                                // Description Field
+                                // Extent of Damage Quick Chips
+                                Text(
+                                    text = "Extent / Degree of Damage",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    listOf("25%", "50%", "75%", "100%").forEach { pct ->
+                                        FilterChip(
+                                            selected = extentOfDamage == pct,
+                                            onClick = { extentOfDamage = pct },
+                                            label = { Text(pct, style = MaterialTheme.typography.labelSmall) },
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                    }
+                                }
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    OutlinedTextField(
+                                        value = varietyPlanted,
+                                        onValueChange = { varietyPlanted = it },
+                                        label = { Text("Variety Planted") },
+                                        placeholder = { Text(if (reportFormType == "CLAIM_INDEMNITY") "e.g. NSIC Rc222" else "e.g. Lakatan") },
+                                        modifier = Modifier.weight(1f),
+                                        singleLine = true,
+                                        shape = RoundedCornerShape(12.dp)
+                                    )
+                                    OutlinedTextField(
+                                        value = dateOfLoss,
+                                        onValueChange = { dateOfLoss = it },
+                                        label = { Text("Date of Loss") },
+                                        modifier = Modifier.weight(1f),
+                                        singleLine = true,
+                                        shape = RoundedCornerShape(12.dp)
+                                    )
+                                }
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    OutlinedTextField(
+                                        value = policyNo,
+                                        onValueChange = { policyNo = it },
+                                        label = { Text(if (reportFormType == "CLAIM_INDEMNITY") "CIC No. (Opt.)" else "Policy No. (Opt.)") },
+                                        modifier = Modifier.weight(1f),
+                                        singleLine = true,
+                                        shape = RoundedCornerShape(12.dp)
+                                    )
+                                    OutlinedTextField(
+                                        value = expectedHarvestDate,
+                                        onValueChange = { expectedHarvestDate = it },
+                                        label = { Text("Harvest Date (Opt.)") },
+                                        placeholder = { Text("MM/DD/YYYY") },
+                                        modifier = Modifier.weight(1f),
+                                        singleLine = true,
+                                        shape = RoundedCornerShape(12.dp)
+                                    )
+                                }
+
+                                if (reportFormType == "CLAIM_INDEMNITY") {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        OutlinedTextField(
+                                            value = areaInsured,
+                                            onValueChange = { areaInsured = it },
+                                            label = { Text("Area Insured (ha)") },
+                                            modifier = Modifier.weight(1f),
+                                            singleLine = true,
+                                            shape = RoundedCornerShape(12.dp)
+                                        )
+                                        OutlinedTextField(
+                                            value = areaDamaged,
+                                            onValueChange = { areaDamaged = it },
+                                            label = { Text("Area Damaged (ha)") },
+                                            modifier = Modifier.weight(1f),
+                                            singleLine = true,
+                                            shape = RoundedCornerShape(12.dp)
+                                        )
+                                    }
+
+                                    Text(
+                                        text = "Crop Stage at Time of Loss",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        items(listOf("Seedling", "Vegetative", "Flowering", "Maturity")) { stg ->
+                                            FilterChip(
+                                                selected = cropStage == stg,
+                                                onClick = { cropStage = stg },
+                                                label = { Text(stg, style = MaterialTheme.typography.labelSmall) }
+                                            )
+                                        }
+                                    }
+
+                                    Text(
+                                        text = "Program",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        items(listOf("RSBSA", "Regular", "Sikat Saka", "Punla", "Others")) { prog ->
+                                            FilterChip(
+                                                selected = programType == prog,
+                                                onClick = { programType = prog },
+                                                label = { Text(prog, style = MaterialTheme.typography.labelSmall) }
+                                            )
+                                        }
+                                    }
+
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        OutlinedTextField(
+                                            value = adjacentNorth,
+                                            onValueChange = { adjacentNorth = it },
+                                            label = { Text("North Neighbor (Opt.)") },
+                                            modifier = Modifier.weight(1f),
+                                            singleLine = true,
+                                            shape = RoundedCornerShape(12.dp)
+                                        )
+                                        OutlinedTextField(
+                                            value = adjacentSouth,
+                                            onValueChange = { adjacentSouth = it },
+                                            label = { Text("South Neighbor (Opt.)") },
+                                            modifier = Modifier.weight(1f),
+                                            singleLine = true,
+                                            shape = RoundedCornerShape(12.dp)
+                                        )
+                                    }
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        OutlinedTextField(
+                                            value = adjacentEast,
+                                            onValueChange = { adjacentEast = it },
+                                            label = { Text("East Neighbor (Opt.)") },
+                                            modifier = Modifier.weight(1f),
+                                            singleLine = true,
+                                            shape = RoundedCornerShape(12.dp)
+                                        )
+                                        OutlinedTextField(
+                                            value = adjacentWest,
+                                            onValueChange = { adjacentWest = it },
+                                            label = { Text("West Neighbor (Opt.)") },
+                                            modifier = Modifier.weight(1f),
+                                            singleLine = true,
+                                            shape = RoundedCornerShape(12.dp)
+                                        )
+                                    }
+                                }
+
+                                // Description Field (Optional extra notes — auto-summarized from form above)
                                 OutlinedTextField(
                                     value = reportDescription,
                                     onValueChange = { reportDescription = it },
-                                    label = { Text("Describe Symptoms, Affected Crops or Field Area") },
-                                    placeholder = { Text("e.g., Brown planthopper infestation observed in south sector palay field. Approximately 1.5 hectares affected.") },
+                                    label = { Text("Additional Notes (Optional — auto-filled from form)") },
+                                    placeholder = { Text("Optional extra field observations...") },
                                     modifier = Modifier.fillMaxWidth(),
-                                    minLines = 4,
+                                    minLines = 2,
                                     shape = RoundedCornerShape(12.dp)
                                 )
                             }
@@ -805,7 +1279,7 @@ fun ReportIssueScreen(
                                 }
 
                                 Text(
-                                    text = "Clear close-up photos of infested crops, pest specimens, or damaged farmland expedite DA evaluation.",
+                                    text = "Live camera capture only — take clear close-up photos of infested crops, pest specimens, or damaged farmland to expedite DA evaluation.",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = Color.Gray
                                 )
@@ -815,13 +1289,19 @@ fun ReportIssueScreen(
                                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    // Add Photo Button Card
+                                    // Take Photo Button Card (Camera-only for real-time evidence)
                                     if (selectedImageUris.size < 5) {
                                         item {
                                             Surface(
                                                 modifier = Modifier
                                                     .size(110.dp)
-                                                    .clickable { showImageSourceDialog = true },
+                                                    .clickable {
+                                                        val uri = createImageUri()
+                                                        if (uri != null) {
+                                                            tempImageUri = uri
+                                                            cameraLauncher.launch(uri)
+                                                        }
+                                                    },
                                                 color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
                                                 shape = RoundedCornerShape(14.dp),
                                                 border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f))
@@ -832,14 +1312,14 @@ fun ReportIssueScreen(
                                                     horizontalAlignment = Alignment.CenterHorizontally
                                                 ) {
                                                     Icon(
-                                                        imageVector = Icons.Default.AddAPhoto,
-                                                        contentDescription = "Add Photo",
+                                                        imageVector = Icons.Default.PhotoCamera,
+                                                        contentDescription = "Take Photo",
                                                         tint = MaterialTheme.colorScheme.primary,
                                                         modifier = Modifier.size(28.dp)
                                                     )
                                                     Spacer(modifier = Modifier.height(4.dp))
                                                     Text(
-                                                        text = "Add Photo",
+                                                        text = "Take Photo",
                                                         style = MaterialTheme.typography.labelSmall,
                                                         fontWeight = FontWeight.Bold,
                                                         color = MaterialTheme.colorScheme.primary
@@ -1041,7 +1521,7 @@ fun ReportIssueScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(52.dp),
-                            enabled = !isUploading && selectedImageUris.isNotEmpty() && reportDescription.isNotBlank(),
+                            enabled = !isUploading && selectedImageUris.isNotEmpty() && selectedFarm != null,
                             shape = RoundedCornerShape(14.dp)
                         ) {
                             if (isUploading) {
@@ -1285,6 +1765,123 @@ fun ReportIssueScreen(
                                                         color = statusColor,
                                                         fontWeight = FontWeight.Bold
                                                     )
+                                                }
+                                            }
+
+                                            // Crop Insurance Eligibility & Downloadable Form (when Resolved)
+                                            if (status.equals("Resolved", ignoreCase = true)) {
+                                                val rawFormType = rep["insuranceFormType"]?.toString()
+                                                val formType = InsurancePdfHelper.detectFormType(rawFormType, category, description)
+                                                val isIndemnity = formType == "CLAIM_INDEMNITY"
+                                                val formLabel = if (isIndemnity) {
+                                                    "RC-CAS-01 Claim for Indemnity (Rice & Corn)"
+                                                } else {
+                                                    "HVCI CAS Form No. 01 (High-Value Crops)"
+                                                }
+                                                val insStatus = rep["insuranceStatus"]?.toString() ?: "Eligible"
+                                                val insNotes = rep["insuranceNotes"]?.toString() ?: ""
+                                                val insDateStr = if (timestamp != null) DateFormat.format("MM/dd/yyyy", timestamp.toDate()).toString() else ""
+                                                val insLat = rep["latitude"]
+                                                val insLng = rep["longitude"]
+                                                val insLoc = if (insLat != null && insLng != null) "$insLat, $insLng" else (rep["address"]?.toString() ?: "")
+
+                                                Surface(
+                                                    color = Color(0xFFE8F5E9).copy(alpha = 0.65f),
+                                                    shape = RoundedCornerShape(12.dp),
+                                                    border = BorderStroke(1.dp, Color(0xFF2E7D32).copy(alpha = 0.35f)),
+                                                    modifier = Modifier.fillMaxWidth()
+                                                ) {
+                                                    Column(
+                                                        modifier = Modifier.padding(12.dp),
+                                                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                                                    ) {
+                                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                                            Icon(
+                                                                Icons.Default.VerifiedUser,
+                                                                contentDescription = null,
+                                                                tint = Color(0xFF1B5E20),
+                                                                modifier = Modifier.size(18.dp)
+                                                            )
+                                                            Spacer(modifier = Modifier.width(6.dp))
+                                                            Text(
+                                                                text = "PCIC Crop Insurance ($insStatus)",
+                                                                style = MaterialTheme.typography.labelLarge,
+                                                                fontWeight = FontWeight.Bold,
+                                                                color = Color(0xFF1B5E20)
+                                                            )
+                                                        }
+
+                                                        Text(
+                                                            text = "Form: $formLabel",
+                                                            style = MaterialTheme.typography.bodySmall,
+                                                            fontWeight = FontWeight.SemiBold,
+                                                            color = Color(0xFF1B5E20)
+                                                        )
+
+                                                        if (insNotes.isNotBlank()) {
+                                                            Text(
+                                                                text = insNotes,
+                                                                style = MaterialTheme.typography.labelSmall,
+                                                                color = Color(0xFF2E7D32)
+                                                            )
+                                                        }
+
+                                                        Row(
+                                                            modifier = Modifier.fillMaxWidth(),
+                                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                                        ) {
+                                                            Button(
+                                                                onClick = {
+                                                                    InsurancePdfHelper.generateAndOpenForm(
+                                                                        context,
+                                                                        InsurancePdfHelper.InsuranceFormData(
+                                                                            formType = formType,
+                                                                            farmerName = rep["farmerName"]?.toString() ?: userViewModel.farmerName.value,
+                                                                            contact = rep["contact"]?.toString() ?: userViewModel.farmerPhone.value,
+                                                                            farmLocation = insLoc,
+                                                                            cropCategory = category,
+                                                                            causeOfLoss = description,
+                                                                            dateOfLoss = insDateStr,
+                                                                            regionalOffice = rep["insuranceRegionalOffice"]?.toString() ?: "",
+                                                                            policyNo = rep["insurancePolicyNo"]?.toString() ?: rep["policyNo"]?.toString() ?: "",
+                                                                            daNotes = insNotes,
+                                                                            varietyPlanted = rep["varietyPlanted"]?.toString() ?: "",
+                                                                            areaInsured = rep["areaInsured"]?.toString() ?: "",
+                                                                            areaDamaged = rep["areaDamaged"]?.toString() ?: "",
+                                                                            plantingDate = rep["plantingDate"]?.toString() ?: "",
+                                                                            cropStage = rep["cropStage"]?.toString() ?: "",
+                                                                            programType = rep["programType"]?.toString() ?: "RSBSA",
+                                                                            expectedHarvestDate = rep["expectedHarvestDate"]?.toString() ?: "",
+                                                                            extentOfDamage = rep["extentOfDamage"]?.toString() ?: "",
+                                                                            policyType = rep["policyType"]?.toString() ?: "High-Value Crop",
+                                                                            adjacentNorth = rep["adjacentNorth"]?.toString() ?: "",
+                                                                            adjacentSouth = rep["adjacentSouth"]?.toString() ?: "",
+                                                                            adjacentEast = rep["adjacentEast"]?.toString() ?: "",
+                                                                            adjacentWest = rep["adjacentWest"]?.toString() ?: ""
+                                                                        )
+                                                                    )
+                                                                },
+                                                                modifier = Modifier.weight(1f),
+                                                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
+                                                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32))
+                                                            ) {
+                                                                Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(16.dp))
+                                                                Spacer(modifier = Modifier.width(4.dp))
+                                                                Text("Download Form", style = MaterialTheme.typography.labelSmall, maxLines = 1)
+                                                            }
+
+                                                            OutlinedButton(
+                                                                onClick = { selectedInsuranceGuideReport = rep },
+                                                                modifier = Modifier.weight(1f),
+                                                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
+                                                                border = BorderStroke(1.dp, Color(0xFF2E7D32))
+                                                            ) {
+                                                                Icon(Icons.Default.MenuBook, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color(0xFF1B5E20))
+                                                                Spacer(modifier = Modifier.width(4.dp))
+                                                                Text("Filing Guide", style = MaterialTheme.typography.labelSmall, color = Color(0xFF1B5E20), maxLines = 1)
+                                                            }
+                                                        }
+                                                    }
                                                 }
                                             }
                                         }

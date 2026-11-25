@@ -1,5 +1,8 @@
 package com.group7.agriserve.ui.screens
 
+import android.content.Intent
+import android.net.Uri
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -11,6 +14,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -49,6 +53,7 @@ fun ProfileScreen(
     var showLanguageDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
     var showThemeDialog by remember { mutableStateOf(false) }
+    var showRsbsaGuideDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -150,28 +155,26 @@ fun ProfileScreen(
                         }
                     }
 
-                    val context = LocalContext.current
-                    val remainingDays = SessionManager.getRemainingDays(context)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Surface(
-                        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                    if (!isVerified) {
+                        Spacer(modifier = Modifier.height(14.dp))
+                        Button(
+                            onClick = onVerificationClick,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (userViewModel.farmerStatus.value == "pending") Color(0xFF1976D2) else MaterialTheme.colorScheme.primary
+                            ),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            Icon(
-                                Icons.Filled.Lock,
-                                contentDescription = null,
-                                modifier = Modifier.size(13.dp),
-                                tint = MaterialTheme.colorScheme.secondary
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
+                            Icon(Icons.Filled.VerifiedUser, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "Weekly Login: $remainingDays days left (Offline Ready)",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSecondaryContainer
+                                text = when (userViewModel.farmerStatus.value) {
+                                    "pending" -> "Profile Verification Status (Under Review)"
+                                    "guest" -> "Resubmit Farmer Profile Verification"
+                                    else -> "Complete Farmer Profile Verification"
+                                },
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 13.sp
                             )
                         }
                     }
@@ -233,7 +236,9 @@ fun ProfileScreen(
             }
 
             ProfileInfoSection(title = stringResource(R.string.account_settings)) {
+                SettingsRow(icon = Icons.Filled.VerifiedUser, label = "Farmer Profile Verification", onClick = onVerificationClick)
                 SettingsRow(icon = Icons.Filled.Edit, label = stringResource(R.string.update_profile_info), onClick = onEditProfileClick)
+                SettingsRow(icon = Icons.Filled.Lock, label = "${stringResource(R.string.security_password)} (Offline PIN & Fingerprint)", onClick = onSecurityClick)
                 val currentLangLabel = when (userViewModel.selectedLanguage.value) { "bcl", "bik" -> stringResource(R.string.bikol); "fil", "tl" -> stringResource(R.string.tagalog); else -> stringResource(R.string.english) }
                 SettingsRow(
                     icon = Icons.Filled.Language, 
@@ -287,6 +292,7 @@ fun ProfileScreen(
                         )
                     }
                 }
+                SettingsRow(icon = Icons.AutoMirrored.Filled.MenuBook, label = "Official DA RSBSA Enrollment Guide", onClick = { showRsbsaGuideDialog = true })
                 SettingsRow(icon = Icons.Filled.Palette, label = "${stringResource(R.string.theme)} Options (System / Light / Dark)", onClick = { showThemeDialog = true })
                 SettingsRow(icon = Icons.Filled.StarRate, label = "Feedback & System Evaluation", onClick = onFeedbackClick)
                 SettingsRow(icon = Icons.Filled.HelpCenter, label = "Help Center, FAQs & Customer Support", onClick = onSupportClick)
@@ -387,6 +393,20 @@ fun ProfileScreen(
             confirmButton = {
                 TextButton(onClick = { showThemeDialog = false }) {
                     Text(stringResource(R.string.close))
+                }
+            }
+        )
+    }
+
+    if (showRsbsaGuideDialog) {
+        RsbsaEnrollmentGuideDialog(
+            onDismiss = { showRsbsaGuideDialog = false },
+            onOpenUrl = { url ->
+                try {
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                    context.startActivity(intent)
+                } catch (_: Exception) {
+                    Toast.makeText(context, "Unable to open link", Toast.LENGTH_SHORT).show()
                 }
             }
         )

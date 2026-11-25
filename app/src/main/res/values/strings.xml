@@ -179,4 +179,30 @@
     <string name="rsbsa_download_form">Download Official RSBSA Form (PDF)</string>
     <string name="rsbsa_check_status_online">Check Status Online (DA Finder)</string>
     <string name="rsbsa_visit_da_portal">Visit Official DA RSBSA Portal</string>
+    <string name="dont_have_account_signup">DON\'T HAVE AN ACCOUNT? SIGN UP HERE!</string>
+
+    <!-- Login & Auth Humanized Strings -->
+    <string name="forgot_password">Forgot Password?</string>
+    <string name="login_upper">LOGIN</string>
+    <string name="or_continue_with">OR CONTINUE WITH</string>
+    <string name="continue_with_google">Continue with Google</string>
+    <string name="continue_with_facebook">Continue with Facebook</string>
+    <string name="farmer_sign_up_title">Farmer Sign Up</string>
+    <string name="signup_subtitle">Create your AgriServe account to get started. You can complete your profile verification after logging in.</string>
+    <string name="mobile_phone_label">Mobile Number (e.g. 09171234567)</string>
+    <string name="farmer_type_label">Type of Farmer</string>
+    <string name="crops_planted_label">Crops Planted</string>
+    <string name="create_farmer_account">CREATE ACCOUNT</string>
+    <string name="forgot_password_title">Reset Password</string>
+    <string name="send_otp_btn">SEND VERIFICATION CODE</string>
+    <string name="verify_reset_btn">VERIFY &amp; RESET PASSWORD</string>
+    <string name="status_aid_title">Status &amp; Agricultural Aid</string>
+    <string name="requests_tab">Requests</string>
+    <string name="incidents_tab">Incidents</string>
+    <string name="edit_profile_title">Edit Profile</string>
+    <string name="save_profile_changes">SAVE PROFILE CHANGES</string>
+    <string name="valid_id_back_to_back">Valid Government ID (Back-to-Back)</string>
+    <string name="id_front_label">ID Front (Portrait &amp; Details)</string>
+    <string name="id_back_label">ID Back (Barcode &amp; Security Text)</string>
+    <string name="camera_landscape">Camera (Landscape)</string>
 </resources>

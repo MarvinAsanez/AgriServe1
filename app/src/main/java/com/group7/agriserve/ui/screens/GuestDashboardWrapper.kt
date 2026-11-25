@@ -88,7 +88,7 @@ fun GuestDashboardWrapper(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(
-                            text = "Guest Farmer (Restricted Access)",
+                            text = "Unverified Profile (Restricted Access)",
                             fontWeight = FontWeight.Bold,
                             color = if (isDark) Color(0xFFFFB74D) else Color(0xFFD84315),
                             fontSize = 13.sp
@@ -119,7 +119,7 @@ fun GuestDashboardWrapper(
                     Spacer(modifier = Modifier.height(4.dp))
 
                     Text(
-                        text = "Tap here to update and resubmit your credentials ➔",
+                        text = "Tap here to complete Farmer Profile Verification ➔",
                         color = if (isDark) Color(0xFFFFCC80) else Color(0xFFBF360C),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.ExtraBold

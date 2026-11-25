@@ -34,13 +34,13 @@
     <string name="farmer_community">Komunidad ng Magsasaka</string>
     <string name="farm_tagging">Pag-tag ng Sakahan</string>
     <string name="view_all_farms">Mapa ng mga Sakahan</string>
-    <string name="refresh_news">Sariwain ang Balita</string>
-    <string name="news_error">Hindi ma-load ang balita mula sa DA.gov.ph</string>
+    <string name="refresh_news">I-refresh ang Balita</string>
+    <string name="news_error">Hindi ma-load ang mga balita mula sa DA.gov.ph</string>
 
     <!-- Profile Screen -->
     <string name="farmer_profile">Profile ng Magsasaka</string>
     <string name="verified_farmer">Beripikadong Magsasaka</string>
-    <string name="verification_pending">Kasalukuyang Bineberipika</string>
+    <string name="verification_pending">Sinusuri ang Beripikasyon</string>
     <string name="account_details">Mga Detalye ng Account</string>
     <string name="verification_identity">Beripikasyon at Pagkakakilanlan</string>
     <string name="location_details">Mga Detalye ng Lokasyon</string>
@@ -174,4 +174,30 @@
     <string name="rsbsa_download_form">I-download ang Opisyal na RSBSA Form (PDF)</string>
     <string name="rsbsa_check_status_online">I-check ang Status Online (DA Finder)</string>
     <string name="rsbsa_visit_da_portal">Puntahan ang Opisyal na DA Portal</string>
+    <string name="dont_have_account_signup">WALANG ACCOUNT? MAG-SIGN UP DITO!</string>
+
+    <!-- Login & Auth Humanized Strings -->
+    <string name="forgot_password">Nakalimutan ang Password?</string>
+    <string name="login_upper">MAG-LOGIN</string>
+    <string name="or_continue_with">O MAGPATULOY GAMIT ANG</string>
+    <string name="continue_with_google">Magpatuloy gamit ang Google</string>
+    <string name="continue_with_facebook">Magpatuloy gamit ang Facebook</string>
+    <string name="farmer_sign_up_title">Pagpaparehistro ng Magsasaka</string>
+    <string name="signup_subtitle">Gumawa ng inyong AgriServe account upang makapagsimula. Maaari ninyong kumpletuhin ang beripikasyon ng profile pagkatapos mag-login.</string>
+    <string name="mobile_phone_label">Numero ng Cellphone (hal. 09171234567)</string>
+    <string name="farmer_type_label">Uri ng Magsasaka</string>
+    <string name="crops_planted_label">Mga Pananim</string>
+    <string name="create_farmer_account">GUMAWA NG ACCOUNT</string>
+    <string name="forgot_password_title">I-reset ang Password</string>
+    <string name="send_otp_btn">IPADALA ANG VERIFICATION CODE</string>
+    <string name="verify_reset_btn">KUMPIRMAHIN AT PALITAN ANG PASSWORD</string>
+    <string name="status_aid_title">Katayuan at Tulong Pang-Agrikultura</string>
+    <string name="requests_tab">Mga Kahilingan</string>
+    <string name="incidents_tab">Mga Insidente</string>
+    <string name="edit_profile_title">I-update ang Profile</string>
+    <string name="save_profile_changes">I-SAVE ANG MGA PAGBABAGO</string>
+    <string name="valid_id_back_to_back">Valid Government ID (Harap at Likod)</string>
+    <string name="id_front_label">Harap ng ID (Larawan at Detalye)</string>
+    <string name="id_back_label">Likod ng ID (Barcode at Seguridad)</string>
+    <string name="camera_landscape">Kamera (Pahiga)</string>
 </resources>

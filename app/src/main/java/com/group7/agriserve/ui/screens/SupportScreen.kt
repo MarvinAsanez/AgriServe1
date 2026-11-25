@@ -125,7 +125,7 @@ fun SupportScreen(
             FaqItem(
                 category = "Offline",
                 question = "How long can I remain logged in while offline?",
-                answer = "AgriServe maintains an offline session validity of 7 days (1 week). You do not need an active internet connection to log in every day. You only need to connect online once every 7 days to refresh your security credentials."
+                answer = "Your AgriServe session stays signed in indefinitely until you manually log out. You can also enable Offline PIN or Fingerprint Lock in Profile -> Security & Password to protect your account while working offline."
             ),
             FaqItem(
                 category = "Account",

@@ -2,11 +2,13 @@ package com.group7.agriserve.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.android.recaptcha.RecaptchaAction
 import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.functions.FirebaseFunctionsException
 import com.group7.agriserve.data.api.AuthApi
 import com.group7.agriserve.data.api.ResetPasswordRequest
 import com.group7.agriserve.data.api.SendOtpRequest
+import com.group7.agriserve.util.RecaptchaManager
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -95,10 +97,21 @@ class ForgotPasswordViewModel(
 
         viewModelScope.launch {
             try {
+                // Execute reCAPTCHA Enterprise for OTP protection
+                val recaptchaTokenResult = RecaptchaManager.executeAction(RecaptchaAction.custom("otp"))
+                if (recaptchaTokenResult.isFailure) {
+                    throw Exception(
+                        recaptchaTokenResult.exceptionOrNull()?.message
+                            ?: "Security check failed. Please try again."
+                    )
+                }
+                val recaptchaToken = recaptchaTokenResult.getOrDefault("")
+
                 // 1. Primary: Call Cloud Function sendPasswordResetOtp
                 val payload = hashMapOf(
                     "identifier" to rawInput,
-                    "channel" to channel.value
+                    "channel" to channel.value,
+                    "recaptchaToken" to recaptchaToken
                 )
 
                 var destinationMasked = ""

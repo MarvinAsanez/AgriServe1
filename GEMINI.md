@@ -80,3 +80,4 @@ cd "C:\Users\Marvin\Desktop\AgriServe"
 2. **Localization Compliance**: Never hardcode user-facing strings in Compose screens. Place string resources in `res/values/strings.xml`, `res/values-tl/strings.xml`, and `res/values-bcl/strings.xml`.
 3. **Decoupled Web Assets**: When creating or modifying web dashboard pages, keep HTML clean, put CSS in `public/assets/css/style.css`, and put JavaScript in dedicated modules under `public/assets/js/`.
 4. **Security Rules Synchronization**: Whenever modifying Firestore schemas or collections (`farmers`, `requests`, `inventory`, `admins`), update and review `firestore.rules` to ensure unauthorized client-side access is blocked.
+

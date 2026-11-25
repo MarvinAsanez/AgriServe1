@@ -20,13 +20,20 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.core.os.LocaleListCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -40,6 +47,10 @@ import androidx.navigation.NavType
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import com.google.firebase.auth.FirebaseAuth
+import com.group7.agriserve.util.NetworkUtils
+import com.group7.agriserve.util.OfflineLockManager
+import com.group7.agriserve.util.OfflineSyncManager
+import com.group7.agriserve.util.RecaptchaManager
 import com.group7.agriserve.util.SessionManager
 import com.group7.agriserve.ui.navigation.Screen
 import com.group7.agriserve.ui.screens.*
@@ -49,6 +60,11 @@ import com.group7.agriserve.viewmodel.UserViewModel
 class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Pre-initialize reCAPTCHA Enterprise client for Login, Signup & OTP protection
+        RecaptchaManager.init(application)
+        // Monitor network restoration to auto-sync offline Farm Tagging, Requests & Reports
+        OfflineSyncManager.startMonitoring(applicationContext)
         
         // Enable Firebase Firestore Offline Persistence
         try {
@@ -92,6 +108,39 @@ fun AgriServeApp(userViewModel: UserViewModel) {
     val selectedLanguage by userViewModel.selectedLanguage
     val currentUser = FirebaseAuth.getInstance().currentUser
     val isSessionValid = remember { SessionManager.isSessionValid(context) }
+    var isAppLocked by remember {
+        mutableStateOf(
+            isSessionValid && (OfflineLockManager.isAppLocked(context) || OfflineLockManager.shouldRequireLockOnLaunch(context))
+        )
+    }
+    var wasInBackground by remember { mutableStateOf(false) }
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_STOP -> {
+                    wasInBackground = true
+                }
+                Lifecycle.Event.ON_START -> {
+                    if (wasInBackground) {
+                        wasInBackground = false
+                        if (SessionManager.isSessionValid(context) &&
+                            OfflineLockManager.shouldRequireLockOnLaunch(context)
+                        ) {
+                            OfflineLockManager.setAppLocked(context, true)
+                            isAppLocked = true
+                        }
+                    }
+                }
+                else -> Unit
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
 
     // Instant local cache load for offline cold-start
     LaunchedEffect(Unit) {
@@ -205,14 +254,9 @@ fun AgriServeApp(userViewModel: UserViewModel) {
     ) { innerPadding ->
         val startDestinationRoute = remember {
             if (!SessionManager.isSessionValid(context)) {
-                Screen.VerificationGate.route
+                Screen.Login.route
             } else {
-                val cachedStatus = SessionManager.getCachedFarmerStatus(context)
-                when (cachedStatus) {
-                    "pending" -> Screen.ApplicationStatus.route
-                    "not_submitted" -> Screen.VerificationGate.route
-                    else -> "main"
-                }
+                "main"
             }
         }
 
@@ -225,8 +269,8 @@ fun AgriServeApp(userViewModel: UserViewModel) {
             composable(Screen.VerificationGate.route) {
                 VerificationGateScreen(
                     userViewModel = userViewModel,
-                    onNavigateToSubmission = {
-                        navController.navigate(Screen.CredentialSubmission.route)
+                    onNavigateToSignup = {
+                        navController.navigate(Screen.Signup.route)
                     },
                     onNavigateToStatus = {
                         navController.navigate(Screen.ApplicationStatus.route) {
@@ -255,15 +299,28 @@ fun AgriServeApp(userViewModel: UserViewModel) {
                     userViewModel = userViewModel,
                     onLoginClick = {
                         navController.navigate("main") {
-                            popUpTo(Screen.VerificationGate.route) { inclusive = true }
+                            popUpTo(Screen.Login.route) { inclusive = true }
                         }
                     },
                     onSignupClick = {
-                        navController.navigate(Screen.CredentialSubmission.route)
+                        navController.navigate(Screen.Signup.route)
                     },
                     onForgotPasswordClick = {
                         navController.navigate(Screen.ForgotPassword.route)
                     }
+                )
+            }
+
+            // 0.1 Simplified Sign Up Screen (Email, Phone, Farmer Type, Crop Type, Password)
+            composable(Screen.Signup.route) {
+                SignupScreen(
+                    userViewModel = userViewModel,
+                    onSignupComplete = {
+                        navController.navigate(Screen.Login.route) {
+                            popUpTo(Screen.Signup.route) { inclusive = true }
+                        }
+                    },
+                    onBackToLogin = { navController.popBackStack() }
                 )
             }
 
@@ -278,20 +335,10 @@ fun AgriServeApp(userViewModel: UserViewModel) {
                 )
             }
 
-            // 2. Onboarding / Credential Submission Screen
+            // 2. Legacy Onboarding Route Redirect -> ProfileVerificationScreen
             composable(Screen.CredentialSubmission.route) {
-                CredentialSubmissionScreen(
+                ProfileVerificationScreen(
                     userViewModel = userViewModel,
-                    onSubmissionSuccess = {
-                        navController.navigate(Screen.ApplicationStatus.route) {
-                            popUpTo(Screen.CredentialSubmission.route) { inclusive = true }
-                        }
-                    },
-                    onNavigateToHome = {
-                        navController.navigate("main") {
-                            popUpTo(Screen.CredentialSubmission.route) { inclusive = true }
-                        }
-                    },
                     onBack = { navController.popBackStack() }
                 )
             }
@@ -405,7 +452,7 @@ fun AgriServeApp(userViewModel: UserViewModel) {
                 composable(Screen.Request.route) {
                     if ((farmerStatus == "guest" || !isVerified) && role != "Admin") {
                         UnverifiedFarmerGate(
-                            onVerifyClick = { navController.navigate(Screen.ResubmitCredentials.route) },
+                            onVerifyClick = { navController.navigate(Screen.ProfileVerification.route) },
                             onBack = { navController.popBackStack() }
                         )
                     } else {
@@ -421,7 +468,7 @@ fun AgriServeApp(userViewModel: UserViewModel) {
                     val itemName = backStackEntry.arguments?.getString("itemName") ?: ""
                     if ((farmerStatus == "guest" || !isVerified) && role != "Admin") {
                         UnverifiedFarmerGate(
-                            onVerifyClick = { navController.navigate(Screen.ResubmitCredentials.route) },
+                            onVerifyClick = { navController.navigate(Screen.ProfileVerification.route) },
                             onBack = { navController.popBackStack() }
                         )
                     } else {
@@ -450,6 +497,7 @@ fun AgriServeApp(userViewModel: UserViewModel) {
                             }
                         },
                         onEditProfileClick = { navController.navigate(Screen.EditProfile.route) },
+                        onSecurityClick = { navController.navigate(Screen.Security.route) },
                         onSupportClick = { navController.navigate(Screen.Support.route) },
                         onFeedbackClick = { navController.navigate(Screen.Feedback.route) },
                         onVerificationClick = { 
@@ -457,25 +505,32 @@ fun AgriServeApp(userViewModel: UserViewModel) {
                                 navController.navigate(Screen.ResubmitCredentials.route)
                             } else if (farmerStatus == "pending") {
                                 navController.navigate(Screen.ApplicationStatus.route)
-                            } else if (farmerStatus == "not_submitted") {
-                                navController.navigate(Screen.CredentialSubmission.route)
                             } else {
-                                navController.navigate(Screen.AccountVerification.route)
+                                navController.navigate(Screen.ProfileVerification.route)
                             }
                         },
                         onTagFarmClick = { navController.navigate(Screen.FarmTagging.route) },
                         onAllFarmsMapClick = { navController.navigate(Screen.AllFarmsMap.route) },
                         onLogoutClick = {
+                            OfflineLockManager.clearLockOnLogout(context)
+                            isAppLocked = false
                             userViewModel.logout(context)
-                            navController.navigate(Screen.VerificationGate.route) {
+                            navController.navigate(Screen.Login.route) {
                                 popUpTo(0) { inclusive = true }
                             }
                         }
                     )
                 }
 
+                composable(Screen.ProfileVerification.route) {
+                    ProfileVerificationScreen(
+                        userViewModel = userViewModel,
+                        onBack = { navController.popBackStack() }
+                    )
+                }
+
                 composable(Screen.AccountVerification.route) {
-                    AccountVerificationScreen(
+                    ProfileVerificationScreen(
                         userViewModel = userViewModel,
                         onBack = { navController.popBackStack() }
                     )
@@ -492,7 +547,11 @@ fun AgriServeApp(userViewModel: UserViewModel) {
                 composable(Screen.Security.route) {
                     SecurityScreen(
                         userViewModel = userViewModel,
-                        onBack = { navController.popBackStack() }
+                        onBack = { navController.popBackStack() },
+                        onLockApp = {
+                            OfflineLockManager.setAppLocked(context, true)
+                            isAppLocked = true
+                        }
                     )
                 }
 
@@ -573,5 +632,26 @@ fun AgriServeApp(userViewModel: UserViewModel) {
 
             }
         }
+    }
+
+    val route = currentDestination?.route
+    val isAuthScreen = route == Screen.Login.route || route == Screen.Signup.route || route == Screen.ForgotPassword.route
+    if (isAppLocked && !isAuthScreen && OfflineLockManager.hasAnyLockConfigured(context)) {
+        OfflineLockScreen(
+            farmerName = farmerName,
+            farmerEmail = userViewModel.farmerEmail.value,
+            onUnlocked = {
+                OfflineLockManager.setAppLocked(context, false)
+                isAppLocked = false
+            },
+            onSignOutRequested = {
+                OfflineLockManager.clearLockOnLogout(context)
+                isAppLocked = false
+                userViewModel.logout(context)
+                navController.navigate(Screen.Login.route) {
+                    popUpTo(0) { inclusive = true }
+                }
+            }
+        )
     }
 }
