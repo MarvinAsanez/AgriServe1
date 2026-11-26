@@ -142,11 +142,17 @@ fun SecurityScreen(
             Spacer(modifier = Modifier.height(20.dp))
 
             // Offline PIN & Fingerprint Quick Lock Section
-            var isPinEnabled by remember { mutableStateOf(OfflineLockManager.isPinEnabled(context)) }
+            val activeDocId by userViewModel.farmerDocId
+            var isPinEnabled by remember(activeDocId) { mutableStateOf(OfflineLockManager.isPinEnabled(context)) }
             val canUseBiometric = remember { OfflineLockManager.canUseBiometric(context) }
-            var isBiometricEnabled by remember { mutableStateOf(OfflineLockManager.isBiometricEnabled(context)) }
+            var isBiometricEnabled by remember(activeDocId) { mutableStateOf(OfflineLockManager.isBiometricEnabled(context)) }
             var newPin by remember { mutableStateOf("") }
             var confirmPin by remember { mutableStateOf("") }
+
+            LaunchedEffect(activeDocId) {
+                isPinEnabled = OfflineLockManager.isPinEnabled(context)
+                isBiometricEnabled = OfflineLockManager.isBiometricEnabled(context)
+            }
 
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -164,7 +170,11 @@ fun SecurityScreen(
                     }
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
-                        text = "Lock your app without signing out so you can unlock offline and keep queued submissions syncing automatically.",
+                        text = if (isPinEnabled || isBiometricEnabled) {
+                            "Configured & remembered across sign-outs. Lock your app without signing out so queued submissions keep syncing."
+                        } else {
+                            "Set up once — your Offline PIN and Fingerprint preference remain saved across logouts and re-logins."
+                        },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

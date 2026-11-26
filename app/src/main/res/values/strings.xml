@@ -205,4 +205,24 @@
     <string name="id_front_label">ID Front (Portrait &amp; Details)</string>
     <string name="id_back_label">ID Back (Barcode &amp; Security Text)</string>
     <string name="camera_landscape">Camera (Landscape)</string>
+    <string name="release_slip_title">Official Supply Release Slip</string>
+    <string name="release_slip_ready">Release Slip Released</string>
+    <string name="view_release_slip">View Slip</string>
+    <string name="download_release_slip">Download PDF</string>
+    <string name="release_slip_instruction">Present this official release slip with your Valid ID or RSBSA Stub at the Municipal Agriculture Office (MAO) to claim your allocation.</string>
+    <string name="close_btn">Close</string>
+    <string name="cancel">Cancel</string>
+    <string name="mark_all_read">Mark All Read</string>
+    <string name="clear_read_notifications">Clear Read Notifications</string>
+    <string name="unread_only">Unread</string>
+    <string name="no_unread_notifications">No unread notifications</string>
+    <string name="no_notifications_in_category">No notifications in this category</string>
+    <string name="notifications_email_sms_subtitle">Updates are also sent to your registered email &amp; mobile number.</string>
+    <string name="mark_read">Mark Read</string>
+    <string name="mark_unread">Mark Unread</string>
+    <string name="delete_notification">Delete</string>
+    <string name="notification_deleted_toast">Notification deleted</string>
+    <string name="all_notifications_read_toast">All notifications marked as read</string>
+    <string name="cleared_read_notifications_toast">Cleared all read notifications</string>
+    <string name="incident_verified_only_desc">Geotagged farm incident and crop insurance reporting is reserved for verified farmers registered with the Municipal Agriculture Office (MAO). Please complete your RSBSA &amp; valid ID verification first.</string>
 </resources>

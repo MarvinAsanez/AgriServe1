@@ -21,6 +21,7 @@ object SessionManager {
     private const val KEY_FARMER_STATUS = "session_farmer_status"
     private const val KEY_THEME_MODE = "session_theme_mode"
     private const val KEY_APP_LANGUAGE = "session_app_language"
+    private const val KEY_FONT_SCALE = "session_font_scale"
 
     // 7 Days session validity window: 7 * 24 * 60 * 60 * 1000 ms
     const val SESSION_VALIDITY_MS: Long = 7L * 24 * 60 * 60 * 1000L
@@ -166,9 +167,20 @@ object SessionManager {
     fun clearSession(context: Context) {
         val currentTheme = getCachedThemeMode(context)
         val currentLang = getCachedAppLanguage(context)
+        val currentFontScale = getCachedFontScale(context)
         getPrefs(context).edit().clear().apply()
         saveThemeMode(context, currentTheme)
         saveAppLanguage(context, currentLang)
+        saveFontScale(context, currentFontScale)
+    }
+
+    fun saveFontScale(context: Context, scale: Float) {
+        val clamped = scale.coerceIn(0.85f, 1.35f)
+        getPrefs(context).edit().putFloat(KEY_FONT_SCALE, clamped).apply()
+    }
+
+    fun getCachedFontScale(context: Context): Float {
+        return getPrefs(context).getFloat(KEY_FONT_SCALE, 1.0f).coerceIn(0.85f, 1.35f)
     }
 
     fun saveThemeMode(context: Context, mode: String) {

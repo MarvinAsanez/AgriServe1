@@ -1520,14 +1520,14 @@ private fun RsbsaOverviewTab() {
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(12.dp),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFFF1F8E9))
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
         ) {
             Column(modifier = Modifier.padding(14.dp)) {
                 Text(
                     text = "Direct DA Subsidies & Benefits for RSBSA Farmers",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF2E7D32)
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
                 Spacer(modifier = Modifier.height(8.dp))
 
@@ -1546,7 +1546,7 @@ private fun RsbsaOverviewTab() {
                             text = title,
                             style = MaterialTheme.typography.bodySmall,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF1B5E20)
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
                         Text(
                             text = desc,
@@ -1753,15 +1753,15 @@ private fun RsbsaFormsAndLinksTab(
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(12.dp),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFFE8F5E9)),
-            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF81C784))
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         imageVector = Icons.Default.Description,
                         contentDescription = null,
-                        tint = Color(0xFF2E7D32),
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
                         modifier = Modifier.size(22.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
@@ -1769,14 +1769,14 @@ private fun RsbsaFormsAndLinksTab(
                         text = "Official RSBSA Enrollment Form",
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF1B5E20)
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                 }
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
                     text = "Download the official DA RSBSA Enrollment Form & Updating Slips A & B. Print and complete the form before heading to your local Municipal Agriculture Office.",
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color(0xFF2E7D32),
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f),
                     lineHeight = 17.sp
                 )
                 Spacer(modifier = Modifier.height(12.dp))

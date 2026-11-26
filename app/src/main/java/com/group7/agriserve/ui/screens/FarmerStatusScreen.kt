@@ -37,6 +37,7 @@ import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.SetOptions
 import com.group7.agriserve.R
 import com.group7.agriserve.util.NetworkUtils
+import com.group7.agriserve.util.ReleaseSlipPdfHelper
 import com.group7.agriserve.util.SessionManager
 import com.group7.agriserve.viewmodel.UserViewModel
 
@@ -370,10 +371,14 @@ fun ResourceRequestsTab(
 
 @Composable
 fun RequestCard(req: Map<String, Any>) {
+    val context = LocalContext.current
+    var showSlipDialog by remember { mutableStateOf(false) }
+
+    val reqId = (req["id"] ?: "").toString()
     val statusField = (req["status"] ?: req["Status"] ?: req["state"] ?: "Pending").toString().trim()
     val isDistributed = (req["distributed"] == true) || (req["isDistributed"] == true) || statusField.equals("Distributed", ignoreCase = true) || req["distributed_at"] != null
-    val isApproved = (req["approved"] == true) || (req["isApproved"] == true) || statusField.equals("Approved", ignoreCase = true) || (req["processed_at"] != null && !isDistributed)
     val isRejected = (req["rejected"] == true) || (req["isRejected"] == true) || statusField.equals("Rejected", ignoreCase = true) || statusField.equals("Denied", ignoreCase = true)
+    val isApproved = !isRejected && !isDistributed && ((req["approved"] == true) || (req["isApproved"] == true) || statusField.equals("Approved", ignoreCase = true) || statusField.equals("Accepted", ignoreCase = true) || req["processed_at"] != null)
 
     val status = when {
         isDistributed -> "Distributed"
@@ -385,6 +390,44 @@ fun RequestCard(req: Map<String, Any>) {
     val itemName = (req["itemName"] ?: req["item_name"] ?: req["requestType"] ?: "Unknown Item").toString()
     val category = (req["requestType"] ?: req["category"] ?: "Resource").toString()
     val quantity = (req["quantity"] ?: "0").toString()
+    val unit = (req["unit"] ?: "units").toString()
+    val slipNumber = (req["releaseSlipNumber"] as? String)?.takeIf { it.isNotBlank() }
+        ?: "DA-SLIP-${reqId.take(8).uppercase()}"
+    val hasReleaseSlip = isApproved || isDistributed || (req["releaseSlipIssued"] == true)
+
+    fun formatReqTs(raw: Any?): String {
+        val ts = raw as? Timestamp ?: return "N/A"
+        return android.text.format.DateFormat.format("MMM dd, yyyy, hh:mm a", ts.toDate()).toString()
+    }
+
+    fun buildSlipData(): ReleaseSlipPdfHelper.ReleaseSlipData {
+        val requestedStr = formatReqTs(req["timestamp"] ?: req["createdAt"])
+        val approvedStr = formatReqTs(req["approved_at"] ?: req["processed_at"])
+        val distStr = if (isDistributed) {
+            formatReqTs(req["distributed_at"] ?: req["updated_at"])
+        } else {
+            "Ready for Claiming at MAO"
+        }
+        return ReleaseSlipPdfHelper.ReleaseSlipData(
+            slipNumber = slipNumber,
+            referenceId = reqId,
+            farmerName = (req["farmerName"] ?: "Beneficiary").toString(),
+            rsbsaNumber = (req["rsbsaNumber"] ?: "Enrolled").toString(),
+            farmAddress = (req["farmerAddress"] ?: req["address"] ?: "Registered Farm Address").toString(),
+            itemName = itemName,
+            category = category,
+            quantity = quantity,
+            unit = unit,
+            farmSize = (req["farmSize"] ?: "N/A").toString(),
+            requestedAt = requestedStr,
+            approvedAt = approvedStr,
+            approvedBy = (req["approvedBy"] ?: req["reviewed_by"] ?: "DA Staff Officer").toString(),
+            distributedAt = distStr,
+            status = status,
+            claimingVenue = (req["releaseSlipVenue"] ?: "Municipal Agriculture Office (MAO)").toString(),
+            purpose = (req["purpose"] ?: req["description"] ?: "Agricultural support").toString()
+        )
+    }
 
     val statusColor = when (status) {
         "Approved" -> Color(0xFF4CAF50)
@@ -453,13 +496,183 @@ fun RequestCard(req: Map<String, Any>) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(text = "Requested Qty: $quantity", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                Text(text = "Requested Qty: $quantity $unit", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
                 val timestamp = req["timestamp"] as? Timestamp ?: (req["createdAt"] as? Timestamp)
                 if (timestamp != null) {
                     val dateString = android.text.format.DateFormat.format("MMM dd, yyyy", timestamp.toDate())
-                    Text(text = "Date: $dateString", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                    Text(text = "Date: $dateString", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
+
+            if (hasReleaseSlip) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.72f),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                ) {
+                    Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.ReceiptLong,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = stringResource(R.string.release_slip_ready),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            }
+                            Text(
+                                text = slipNumber,
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+
+                        Text(
+                            text = if (isDistributed) {
+                                "Disbursed & Released • Venue: ${(req["releaseSlipVenue"] ?: "Municipal Agriculture Office (MAO)")}"
+                            } else {
+                                "Approved for Claiming at ${(req["releaseSlipVenue"] ?: "Municipal Agriculture Office (MAO)")}"
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            OutlinedButton(
+                                onClick = { showSlipDialog = true },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(10.dp),
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                            ) {
+                                Icon(Icons.Default.Visibility, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(stringResource(R.string.view_release_slip), fontSize = 12.sp)
+                            }
+                            Button(
+                                onClick = { ReleaseSlipPdfHelper.generateAndOpenSlip(context, buildSlipData()) },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(10.dp),
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                            ) {
+                                Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(stringResource(R.string.download_release_slip), fontSize = 12.sp)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if (showSlipDialog) {
+        val slip = buildSlipData()
+        AlertDialog(
+            onDismissRequest = { showSlipDialog = false },
+            title = {
+                Column {
+                    Text(
+                        text = stringResource(R.string.release_slip_title),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "${slip.slipNumber} • ${slip.status.uppercase()}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            },
+            text = {
+                Column(
+                    modifier = Modifier.verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    SlipFieldRow("Reference ID", slip.referenceId)
+                    SlipFieldRow("Farmer Beneficiary", slip.farmerName)
+                    SlipFieldRow("RSBSA Reference #", slip.rsbsaNumber)
+                    SlipFieldRow("Requested Item", "${slip.itemName} (${slip.category})")
+                    SlipFieldRow("Quantity & Farm Size", "${slip.quantity} ${slip.unit} • ${slip.farmSize} ha")
+                    SlipFieldRow("Requested At", slip.requestedAt)
+                    SlipFieldRow("Approved At / By", "${slip.approvedAt} • ${slip.approvedBy}")
+                    SlipFieldRow("Release Status", slip.distributedAt)
+                    SlipFieldRow("Claiming Venue", slip.claimingVenue)
+                    SlipFieldRow("Purpose / Notes", slip.purpose)
+
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Surface(
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Text(
+                            text = stringResource(R.string.release_slip_instruction),
+                            modifier = Modifier.padding(10.dp),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showSlipDialog = false
+                        ReleaseSlipPdfHelper.generateAndOpenSlip(context, slip)
+                    },
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(stringResource(R.string.download_release_slip))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showSlipDialog = false }) {
+                    Text(stringResource(R.string.close_btn))
+                }
+            }
+        )
+    }
+}
+
+@Composable
+private fun SlipFieldRow(label: String, value: String) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(8.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant)
+    ) {
+        Column(modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp)) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = value,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
         }
     }
 }

@@ -825,7 +825,7 @@ fun EditProfileScreen(
             )
             Spacer(modifier = Modifier.height(6.dp))
 
-            val cropOptions = listOf("Coconut", "High Value Crops", "Rice", "Corn", "Abacca", "Others")
+            val cropOptions = listOf("Rice", "Corn", "Coconut", "Sugarcane", "High Value Crops")
             FlowRow(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -844,12 +844,12 @@ fun EditProfileScreen(
                         },
                         label = {
                             val emoji = when (crop) {
-                                "Coconut" -> "🥥 "
-                                "High Value Crops" -> "🥬 "
                                 "Rice" -> "🌾 "
                                 "Corn" -> "🌽 "
-                                "Abacca" -> "🌿 "
-                                else -> "📦 "
+                                "Coconut" -> "🥥 "
+                                "Sugarcane" -> "🎋 "
+                                "High Value Crops" -> "🥬 "
+                                else -> "🥬 "
                             }
                             Text("$emoji$crop")
                         },

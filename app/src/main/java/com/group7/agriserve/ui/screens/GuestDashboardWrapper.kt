@@ -22,7 +22,7 @@ import com.group7.agriserve.viewmodel.UserViewModel
  * Guest Dashboard Wrapper
  * Applied when farmer status == 'guest' (or 'resubmission_required'):
  * - Restricted access: Allows browsing general announcements, weather, market prices, and community advisories.
- * - Restricts high-level request submissions (e.g. seeds, fertilizers, farm machinery).
+ * - Restricts high-level request and incident/insurance report submissions (e.g. seeds, fertilizers, farm machinery, farm damage claims).
  * - Displays a persistent banner: "You are currently browsing as a Guest. [Reason/Feedback from DA Staff].
  *   Tap here to update and resubmit your credentials."
  */
@@ -155,7 +155,7 @@ fun GuestDashboardWrapper(
             },
             text = {
                 Text(
-                    text = "Resource requests (seeds, fertilizers, equipment grants) are reserved for verified farmers registered with the DA RSBSA database.\n\nPlease update and resubmit your credentials to attain verified status.",
+                    text = "Resource requests (seeds, fertilizers, equipment grants) and incident/crop insurance reporting are reserved for verified farmers registered with the DA RSBSA database.\n\nPlease update and resubmit your credentials to attain verified status.",
                     style = MaterialTheme.typography.bodyMedium
                 )
             },

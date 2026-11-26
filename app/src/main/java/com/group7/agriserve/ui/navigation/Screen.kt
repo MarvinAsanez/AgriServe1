@@ -36,4 +36,5 @@ sealed class Screen(val route: String) {
     object AllFarmsMap : Screen("all_farms_map")
     object Feedback : Screen("feedback")
     object AiChat : Screen("ai_chat")
+    object Notifications : Screen("notifications")
 }

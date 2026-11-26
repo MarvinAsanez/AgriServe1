@@ -262,8 +262,8 @@ fun RequestResourceScreen(
                     FilledTonalButton(
                         onClick = { showAssistantDialog = true },
                         colors = ButtonDefaults.filledTonalButtonColors(
-                            containerColor = Color(0xFFE8F5E9),
-                            contentColor = Color(0xFF1B5E20)
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                         ),
                         shape = RoundedCornerShape(20.dp),
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
@@ -272,7 +272,7 @@ fun RequestResourceScreen(
                             imageVector = Icons.Default.AutoAwesome,
                             contentDescription = null,
                             modifier = Modifier.size(16.dp),
-                            tint = Color(0xFF2E7D32)
+                            tint = MaterialTheme.colorScheme.primary
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
@@ -1302,9 +1302,9 @@ fun RequestAssistantBanner(onClick: () -> Unit) {
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color(0xFFF1F8E9)
+            containerColor = MaterialTheme.colorScheme.primaryContainer
         ),
-        border = BorderStroke(1.dp, Color(0xFFAED581))
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Row(
             modifier = Modifier.padding(14.dp),
@@ -1312,7 +1312,7 @@ fun RequestAssistantBanner(onClick: () -> Unit) {
         ) {
             Surface(
                 shape = CircleShape,
-                color = Color(0xFF2E7D32),
+                color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(42.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
@@ -1331,16 +1331,16 @@ fun RequestAssistantBanner(onClick: () -> Unit) {
                         text = stringResource(R.string.request_assistant_title),
                         fontWeight = FontWeight.Bold,
                         style = MaterialTheme.typography.titleSmall,
-                        color = Color(0xFF1B5E20)
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Surface(
-                        color = Color(0xFF2E7D32),
+                        color = MaterialTheme.colorScheme.primary,
                         shape = RoundedCornerShape(8.dp)
                     ) {
                         Text(
                             text = "SMART AID",
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.onPrimary,
                             fontSize = 9.sp,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
@@ -1351,7 +1351,7 @@ fun RequestAssistantBanner(onClick: () -> Unit) {
                 Text(
                     text = stringResource(R.string.request_assistant_banner),
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color(0xFF33691E),
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f),
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -1407,11 +1407,11 @@ fun RequestAssistantDialog(
     var selectedCrop by remember {
         mutableStateOf(
             when {
-                primaryCropCandidate.contains("Corn", ignoreCase = true) -> "Corn"
-                primaryCropCandidate.contains("Coconut", ignoreCase = true) -> "Coconut"
-                primaryCropCandidate.contains("High Value", ignoreCase = true) || primaryCropCandidate.contains("Vegetable", ignoreCase = true) -> "High Value Crops"
-                primaryCropCandidate.contains("Abacca", ignoreCase = true) || primaryCropCandidate.contains("Abaca", ignoreCase = true) -> "Abacca"
-                else -> "Rice"
+                primaryCropCandidate.contains("Rice", ignoreCase = true) || primaryCropCandidate.contains("Palay", ignoreCase = true) -> "Rice"
+                primaryCropCandidate.contains("Corn", ignoreCase = true) || primaryCropCandidate.contains("Mais", ignoreCase = true) -> "Corn"
+                primaryCropCandidate.contains("Coconut", ignoreCase = true) || primaryCropCandidate.contains("Niyog", ignoreCase = true) -> "Coconut"
+                primaryCropCandidate.contains("Sugarcane", ignoreCase = true) || primaryCropCandidate.contains("Tubo", ignoreCase = true) -> "Sugarcane"
+                else -> "High Value Crops"
             }
         )
     }
@@ -1426,7 +1426,7 @@ fun RequestAssistantDialog(
 
     var selectedTab by remember { mutableIntStateOf(0) }
 
-    val cropsList = listOf("Rice", "Corn", "Coconut", "High Value Crops", "Abacca", "Others")
+    val cropsList = listOf("Rice", "Corn", "Coconut", "Sugarcane", "High Value Crops")
     val stagesList = listOf(
         "Planting / Land Preparation",
         "Growth / Fertilization",
@@ -1570,7 +1570,19 @@ fun RequestAssistantDialog(
                     }
                 }
             }
-            "High Value Crops" -> {
+            "Sugarcane" -> {
+                val qty = max(2, ceil(hectares * 4.0).toInt())
+                AssistantRecommendation(
+                    item = "Sugarcane NPK Fertilizer & Cane Points",
+                    category = "Fertilizer",
+                    qty = qty.toString(),
+                    unit = "bags",
+                    purpose = "Sugarcane Production & Ratooning",
+                    desc = "SRA/DA Sugarcane fertilization package: $qty bags for $hectares ha.",
+                    note = "Promotes healthy tillering and higher sugar yield (LKg/TC)."
+                )
+            }
+            else -> { // High Value Crops (and all other crops)
                 when (selectedStage) {
                     "Growth / Fertilization" -> {
                         val qty = max(1, ceil(hectares * 3.0).toInt())
@@ -1579,8 +1591,8 @@ fun RequestAssistantDialog(
                             category = "Fertilizer",
                             qty = qty.toString(),
                             unit = "bags",
-                            purpose = "Organic Vegetable Production",
-                            desc = "DA HVCDP Organic fertilizer package: $qty bags for $hectares ha vegetable plot.",
+                            purpose = "High Value Crops Production",
+                            desc = "DA HVCDP Organic fertilizer package: $qty bags for $hectares ha.",
                             note = "High Value Crops Development Program (HVCDP) soil conditioner to boost organic matter and moisture retention."
                         )
                     }
@@ -1592,35 +1604,11 @@ fun RequestAssistantDialog(
                             qty = qty.toString(),
                             unit = "packets",
                             purpose = "High Value Crop Production",
-                            desc = "DA HVCDP vegetable seed starter kit: $qty packets for $hectares ha diversified farming.",
-                            note = "Includes premium certified seeds of tomato, eggplant, ampalaya, string beans, and squash."
+                            desc = "DA HVCDP starter kit: $qty packets for $hectares ha diversified farming.",
+                            note = "Covers vegetables, fruits, root crops, and all other high-value crops outside Rice, Corn, Coconut & Sugarcane."
                         )
                     }
                 }
-            }
-            "Abacca" -> {
-                val qty = max(100, ceil(hectares * 250.0).toInt())
-                AssistantRecommendation(
-                    item = "Disease-Free Abaca Tissue Plantlets",
-                    category = "Crops",
-                    qty = qty.toString(),
-                    unit = "pieces",
-                    purpose = "Abaca Fiber Rehabilitation",
-                    desc = "PhilFIDA/DA disease-resilient abaca plantlets: $qty pieces for $hectares ha.",
-                    note = "Certified bunchy-top resistant tissue-cultured plantlets from PhilFIDA accredited nurseries."
-                )
-            }
-            else -> { // Others
-                val qty = max(1, ceil(hectares * 2.0).toInt())
-                AssistantRecommendation(
-                    item = "Bio-Organic Microbial Fertilizer",
-                    category = "Fertilizer",
-                    qty = qty.toString(),
-                    unit = "bags",
-                    purpose = "Soil Conditioning & Crop Nutrition",
-                    desc = "DA Multi-Crop Soil Nutrition: $qty bags for $hectares ha plot.",
-                    note = "General DA fertility package suitable for mixed crops, rootcrops, and orchard trees."
-                )
             }
         }
     }
@@ -1829,8 +1817,8 @@ fun RequestAssistantDialog(
                                 Card(
                                     modifier = Modifier.fillMaxWidth(),
                                     shape = RoundedCornerShape(16.dp),
-                                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF1F8E9)),
-                                    border = BorderStroke(1.5.dp, Color(0xFF81C784))
+                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+                                    border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.outlineVariant)
                                 ) {
                                     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                         Row(
@@ -1841,16 +1829,16 @@ fun RequestAssistantDialog(
                                             Text(
                                                 text = "RECOMMENDED DA PACKAGE",
                                                 style = MaterialTheme.typography.labelMedium,
-                                                color = Color(0xFF2E7D32),
+                                                color = MaterialTheme.colorScheme.onPrimaryContainer,
                                                 fontWeight = FontWeight.Bold
                                             )
                                             Surface(
                                                 shape = RoundedCornerShape(12.dp),
-                                                color = Color(0xFF2E7D32)
+                                                color = MaterialTheme.colorScheme.primary
                                             ) {
                                                 Text(
                                                     text = "${rec.qty} ${rec.unit}",
-                                                    color = Color.White,
+                                                    color = MaterialTheme.colorScheme.onPrimary,
                                                     fontWeight = FontWeight.Bold,
                                                     fontSize = 12.sp,
                                                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
@@ -1862,16 +1850,16 @@ fun RequestAssistantDialog(
                                             text = rec.item,
                                             style = MaterialTheme.typography.titleMedium,
                                             fontWeight = FontWeight.ExtraBold,
-                                            color = Color(0xFF1B5E20)
+                                            color = MaterialTheme.colorScheme.onPrimaryContainer
                                         )
 
                                         Text(
                                             text = "Category: ${rec.category} • Purpose: ${rec.purpose}",
                                             style = MaterialTheme.typography.bodySmall,
-                                            color = Color(0xFF33691E)
+                                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f)
                                         )
 
-                                        HorizontalDivider(color = Color(0xFFC8E6C9), thickness = 1.dp)
+                                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, thickness = 1.dp)
 
                                         // Warehouse Stock Check
                                         Row(

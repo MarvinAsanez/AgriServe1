@@ -53,6 +53,7 @@ fun ProfileScreen(
     var showLanguageDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
     var showThemeDialog by remember { mutableStateOf(false) }
+    var showTextSizeDialog by remember { mutableStateOf(false) }
     var showRsbsaGuideDialog by remember { mutableStateOf(false) }
 
     Scaffold(
@@ -199,12 +200,12 @@ fun ProfileScreen(
                 } else {
                     cropsList.joinToString(", ") { crop ->
                         val emoji = when (crop) {
-                            "Coconut" -> "🥥 "
-                            "High Value Crops" -> "🥬 "
                             "Rice" -> "🌾 "
                             "Corn" -> "🌽 "
-                            "Abacca" -> "🌿 "
-                            else -> "📦 "
+                            "Coconut" -> "🥥 "
+                            "Sugarcane" -> "🎋 "
+                            "High Value Crops" -> "🥬 "
+                            else -> "🥬 "
                         }
                         "$emoji$crop"
                     }
@@ -294,6 +295,13 @@ fun ProfileScreen(
                 }
                 SettingsRow(icon = Icons.AutoMirrored.Filled.MenuBook, label = "Official DA RSBSA Enrollment Guide", onClick = { showRsbsaGuideDialog = true })
                 SettingsRow(icon = Icons.Filled.Palette, label = "${stringResource(R.string.theme)} Options (System / Light / Dark)", onClick = { showThemeDialog = true })
+                val currentTextSizeLabel = when {
+                    userViewModel.fontScale.value <= 0.9f -> "Small"
+                    userViewModel.fontScale.value >= 1.25f -> "Extra Large"
+                    userViewModel.fontScale.value >= 1.1f -> "Large"
+                    else -> "Normal"
+                }
+                SettingsRow(icon = Icons.Filled.FormatSize, label = "Text Size ($currentTextSizeLabel)", onClick = { showTextSizeDialog = true })
                 SettingsRow(icon = Icons.Filled.StarRate, label = "Feedback & System Evaluation", onClick = onFeedbackClick)
                 SettingsRow(icon = Icons.Filled.HelpCenter, label = "Help Center, FAQs & Customer Support", onClick = onSupportClick)
             }
@@ -393,6 +401,41 @@ fun ProfileScreen(
             confirmButton = {
                 TextButton(onClick = { showThemeDialog = false }) {
                     Text(stringResource(R.string.close))
+                }
+            }
+        )
+    }
+
+    if (showTextSizeDialog) {
+        val currentScale = userViewModel.fontScale.value
+        AlertDialog(
+            onDismissRequest = { showTextSizeDialog = false },
+            title = { Text("Adjust Text Size", fontWeight = FontWeight.Bold) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        text = "Sample preview: AgriServe text is easy to read.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                    ThemeOption("Small", currentScale <= 0.9f) {
+                        userViewModel.updateFontScale(0.85f, context)
+                    }
+                    ThemeOption("Normal (Default)", currentScale in 0.91f..1.09f) {
+                        userViewModel.updateFontScale(1.0f, context)
+                    }
+                    ThemeOption("Large", currentScale in 1.10f..1.24f) {
+                        userViewModel.updateFontScale(1.15f, context)
+                    }
+                    ThemeOption("Extra Large", currentScale >= 1.25f) {
+                        userViewModel.updateFontScale(1.30f, context)
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showTextSizeDialog = false }) {
+                    Text("Done")
                 }
             }
         )

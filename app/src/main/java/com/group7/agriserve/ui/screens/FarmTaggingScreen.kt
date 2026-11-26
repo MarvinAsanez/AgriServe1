@@ -1220,6 +1220,27 @@ fun FarmTaggingScreen(
                                     )
                                 }
 
+                                Spacer(modifier = Modifier.height(10.dp))
+
+                                Text(
+                                    text = "Quick Select Crop Category (other crops fall under High Value Crops)",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Spacer(modifier = Modifier.height(6.dp))
+                                LazyRow(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    items(listOf("Rice", "Corn", "Coconut", "Sugarcane", "High Value Crops")) { stdCrop ->
+                                        FilterChip(
+                                            selected = cropType.equals(stdCrop, ignoreCase = true),
+                                            onClick = { cropType = stdCrop },
+                                            label = { Text(stdCrop, style = MaterialTheme.typography.labelSmall) }
+                                        )
+                                    }
+                                }
+
                                 Spacer(modifier = Modifier.height(16.dp))
 
                                 // Navigation Buttons

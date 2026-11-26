@@ -168,6 +168,10 @@ class UserViewModel : ViewModel() {
     var themeMode = mutableStateOf("system")
         private set
 
+    // Accessibility Text Size Scale: 0.85f (Small), 1.0f (Normal), 1.15f (Large), 1.30f (Extra Large)
+    var fontScale = mutableStateOf(1.0f)
+        private set
+
     private var appContext: Context? = null
 
     init {
@@ -196,6 +200,8 @@ class UserViewModel : ViewModel() {
         if (cachedTheme.isNotBlank() && cachedTheme in listOf("system", "light", "dark")) {
             themeMode.value = cachedTheme
         }
+
+        fontScale.value = SessionManager.getCachedFontScale(context)
 
         val cachedLang = SessionManager.getCachedAppLanguage(context)
         if (cachedLang.isNotBlank()) {
@@ -1868,6 +1874,21 @@ class UserViewModel : ViewModel() {
                 db.collection("users").document(uid).set(update, SetOptions.merge()).catchException()
                 db.collection("farmers").document(uid).set(update, SetOptions.merge()).catchException()
             }
+        }
+    }
+
+    fun updateFontScale(scale: Float, context: Context? = null) {
+        val clamped = scale.coerceIn(0.85f, 1.35f)
+        val targetContext = (context ?: appContext)?.applicationContext
+        fontScale.value = clamped
+        if (targetContext != null) {
+            SessionManager.saveFontScale(targetContext, clamped)
+        }
+        val uid = auth.currentUser?.uid
+        if (uid != null) {
+            val update = mapOf("fontScale" to clamped)
+            db.collection("users").document(uid).set(update, SetOptions.merge()).catchException()
+            db.collection("farmers").document(uid).set(update, SetOptions.merge()).catchException()
         }
     }
 

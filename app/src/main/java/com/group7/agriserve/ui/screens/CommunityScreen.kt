@@ -246,7 +246,7 @@ fun CommunityScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(8.dp))
-                            .background(Color(0xFFE8F5E9))
+                            .background(MaterialTheme.colorScheme.primaryContainer)
                             .padding(horizontal = 10.dp, vertical = 6.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -254,13 +254,13 @@ fun CommunityScreen(
                             imageVector = Icons.Default.CheckCircle,
                             contentDescription = null,
                             modifier = Modifier.size(16.dp),
-                            tint = Color(0xFF2E7D32)
+                            tint = MaterialTheme.colorScheme.primary
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
                             text = "Safe Agricultural Space: Real-time anti-violence & threat filter enabled.",
                             style = MaterialTheme.typography.labelSmall,
-                            color = Color(0xFF1B5E20),
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
                             fontWeight = FontWeight.Medium
                         )
                     }

@@ -400,9 +400,9 @@ fun RealTimeApprovalResultScreen(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(
-                        containerColor = Color(0xFFE3F2FD)
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer
                     ),
-                    border = androidx.compose.foundation.BorderStroke(1.5.dp, Color(0xFF90CAF9))
+                    border = androidx.compose.foundation.BorderStroke(1.5.dp, MaterialTheme.colorScheme.outlineVariant)
                 ) {
                     Row(
                         modifier = Modifier.padding(16.dp),
@@ -410,14 +410,14 @@ fun RealTimeApprovalResultScreen(
                     ) {
                         Surface(
                             shape = CircleShape,
-                            color = Color(0xFF1976D2),
+                            color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(38.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Icon(
                                     imageVector = Icons.Default.NotificationsActive,
                                     contentDescription = "Notification",
-                                    tint = Color.White,
+                                    tint = MaterialTheme.colorScheme.onPrimary,
                                     modifier = Modifier.size(20.dp)
                                 )
                             }
@@ -430,13 +430,13 @@ fun RealTimeApprovalResultScreen(
                                 text = "Real-Time Notification Enabled",
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold,
-                                color = Color(0xFF0D47A1)
+                                color = MaterialTheme.colorScheme.onSecondaryContainer
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
                                 text = "You don't need to stay on this screen. You will automatically receive an instant notification on your device as soon as your application is approved or if any update is needed.",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = Color(0xFF1565C0),
+                                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.88f),
                                 lineHeight = 18.sp
                             )
                         }

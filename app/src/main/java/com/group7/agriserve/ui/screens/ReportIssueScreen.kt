@@ -36,6 +36,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -51,6 +52,7 @@ import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
+import com.group7.agriserve.R
 import com.group7.agriserve.util.InsurancePdfHelper
 import com.group7.agriserve.util.NetworkUtils
 import com.group7.agriserve.util.SessionManager
@@ -81,6 +83,19 @@ fun ReportIssueScreen(
 
     val savedUserId = SessionManager.getSavedUserId(context) ?: ""
     val uid = auth.currentUser?.uid?.ifBlank { savedUserId } ?: savedUserId
+    val hasVerifiedAccess = userViewModel.isVerified.value ||
+        userViewModel.farmerStatus.value == "verified" ||
+        userViewModel.role.value.equals("Admin", ignoreCase = true)
+
+    if (!hasVerifiedAccess) {
+        UnverifiedFarmerGate(
+            onVerifyClick = onBack,
+            onBack = onBack,
+            title = stringResource(R.string.report_incident),
+            featureRestrictionMessage = stringResource(R.string.incident_verified_only_desc)
+        )
+        return
+    }
 
     // Tabs: 0 = Submit Report, 1 = My Reports
     var selectedTab by remember { mutableIntStateOf(0) }

@@ -419,17 +419,17 @@ fun ResubmitCredentialsScreen(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(14.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF3E0)),
-                border = BorderStroke(1.5.dp, Color(0xFFFF9800))
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer),
+                border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.tertiary)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Feedback, contentDescription = null, tint = Color(0xFFE65100), modifier = Modifier.size(24.dp))
+                        Icon(Icons.Default.Feedback, contentDescription = null, tint = MaterialTheme.colorScheme.onTertiaryContainer, modifier = Modifier.size(24.dp))
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(
                             text = "DA Staff Review Feedback",
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFFE65100),
+                            color = MaterialTheme.colorScheme.onTertiaryContainer,
                             fontSize = 15.sp
                         )
                     }
@@ -606,7 +606,7 @@ fun ResubmitCredentialsScreen(
             )
             Spacer(modifier = Modifier.height(6.dp))
 
-            val cropOptions = listOf("Coconut", "High Value Crops", "Rice", "Corn", "Abacca", "Others")
+            val cropOptions = listOf("Rice", "Corn", "Coconut", "Sugarcane", "High Value Crops")
             FlowRow(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -625,12 +625,12 @@ fun ResubmitCredentialsScreen(
                         },
                         label = {
                             val emoji = when (crop) {
-                                "Coconut" -> "🥥 "
-                                "High Value Crops" -> "🥬 "
                                 "Rice" -> "🌾 "
                                 "Corn" -> "🌽 "
-                                "Abacca" -> "🌿 "
-                                else -> "📦 "
+                                "Coconut" -> "🥥 "
+                                "Sugarcane" -> "🎋 "
+                                "High Value Crops" -> "🥬 "
+                                else -> "🥬 "
                             }
                             Text("$emoji$crop")
                         },

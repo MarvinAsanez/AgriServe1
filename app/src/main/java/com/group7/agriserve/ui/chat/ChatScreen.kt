@@ -26,8 +26,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -46,9 +48,15 @@ fun ChatScreen(
     onNavigate: (String) -> Unit = {},
     viewModel: ChatViewModel = viewModel()
 ) {
+    val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
     var inputText by remember { mutableStateOf("") }
+    var showRecentDialog by remember { mutableStateOf(false) }
     val listState = rememberLazyListState()
+
+    LaunchedEffect(Unit) {
+        viewModel.loadRecentSearches(context)
+    }
 
     // Automatically scroll to the bottom when new message arrives
     LaunchedEffect(uiState.messages.size, uiState.isLoading) {
@@ -126,6 +134,15 @@ fun ChatScreen(
                     }
                 },
                 actions = {
+                    if (uiState.recentSearches.isNotEmpty()) {
+                        IconButton(onClick = { showRecentDialog = true }) {
+                            Icon(
+                                imageVector = Icons.Default.History,
+                                contentDescription = "Recent Searches",
+                                tint = AgriServeGreen
+                            )
+                        }
+                    }
                     IconButton(onClick = { viewModel.clearChat() }) {
                         Icon(
                             imageVector = Icons.Default.Refresh,
@@ -147,6 +164,62 @@ fun ChatScreen(
                     .background(MaterialTheme.colorScheme.surface)
                     .imePadding()
             ) {
+                // Recent Searches Bar (Horizontally Scrollable)
+                if (uiState.recentSearches.isNotEmpty()) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState())
+                            .padding(horizontal = 12.dp, vertical = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.History,
+                            contentDescription = "Recent Searches",
+                            tint = AgriServeGreen,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Text(
+                            text = "Recent:",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = AgriServeGreen
+                        )
+                        uiState.recentSearches.forEach { recent ->
+                            InputChip(
+                                selected = false,
+                                onClick = {
+                                    if (!uiState.isLoading) {
+                                        viewModel.sendMessage(recent, context)
+                                    }
+                                },
+                                label = {
+                                    Text(
+                                        text = recent,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.widthIn(max = 180.dp),
+                                        style = MaterialTheme.typography.labelSmall
+                                    )
+                                },
+                                trailingIcon = {
+                                    IconButton(
+                                        onClick = { viewModel.removeRecentSearch(recent, context) },
+                                        modifier = Modifier.size(16.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Close,
+                                            contentDescription = "Remove",
+                                            modifier = Modifier.size(12.dp)
+                                        )
+                                    }
+                                }
+                            )
+                        }
+                    }
+                }
+
                 // Quick Suggestion Chips (Horizontally Scrollable)
                 Row(
                     modifier = Modifier
@@ -158,7 +231,7 @@ fun ChatScreen(
                     suggestionChips.forEach { chipText ->
                         SuggestionChip(
                             onClick = {
-                                viewModel.sendMessage(chipText)
+                                viewModel.sendMessage(chipText, context)
                             },
                             label = {
                                 Text(
@@ -209,7 +282,7 @@ fun ChatScreen(
                                 if (inputText.isNotBlank() && !uiState.isLoading) {
                                     val textToSend = inputText
                                     inputText = ""
-                                    viewModel.sendMessage(textToSend)
+                                    viewModel.sendMessage(textToSend, context)
                                 }
                             }
                         ),
@@ -287,6 +360,80 @@ fun ChatScreen(
                 }
             }
         }
+    }
+    // Recent Searches Dialog
+    if (showRecentDialog) {
+        AlertDialog(
+            onDismissRequest = { showRecentDialog = false },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.History, contentDescription = null, tint = AgriServeGreen)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Recent Searches", fontWeight = FontWeight.Bold)
+                }
+            },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 320.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    if (uiState.recentSearches.isEmpty()) {
+                        Text("No recent searches yet.", style = MaterialTheme.typography.bodySmall)
+                    } else {
+                        uiState.recentSearches.forEach { item ->
+                            Surface(
+                                onClick = {
+                                    showRecentDialog = false
+                                    if (!uiState.isLoading) {
+                                        viewModel.sendMessage(item, context)
+                                    }
+                                },
+                                shape = RoundedCornerShape(10.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(
+                                        text = item,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    IconButton(
+                                        onClick = { viewModel.removeRecentSearch(item, context) },
+                                        modifier = Modifier.size(24.dp)
+                                    ) {
+                                        Icon(Icons.Default.Close, contentDescription = "Remove", modifier = Modifier.size(16.dp))
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                if (uiState.recentSearches.isNotEmpty()) {
+                    TextButton(onClick = {
+                        viewModel.clearRecentSearches(context)
+                        showRecentDialog = false
+                    }) {
+                        Text("Clear All", color = MaterialTheme.colorScheme.error)
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showRecentDialog = false }) {
+                    Text("Close")
+                }
+            }
+        )
     }
 }
 

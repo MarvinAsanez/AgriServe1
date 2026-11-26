@@ -496,7 +496,7 @@ private fun WeeklyPriceComparisonContent(
                 Card(
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFFEBEE))
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
                 ) {
                     Column(
                         modifier = Modifier.padding(10.dp),
@@ -506,7 +506,7 @@ private fun WeeklyPriceComparisonContent(
                             Icon(
                                 Icons.AutoMirrored.Filled.TrendingUp,
                                 contentDescription = null,
-                                tint = Color(0xFFC62828),
+                                tint = MaterialTheme.colorScheme.onErrorContainer,
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(modifier = Modifier.width(3.dp))
@@ -514,14 +514,14 @@ private fun WeeklyPriceComparisonContent(
                                 "Increased",
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
-                                color = Color(0xFFC62828)
+                                color = MaterialTheme.colorScheme.onErrorContainer
                             )
                         }
                         Text(
                             text = "$upCount Items",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFFB71C1C)
+                            color = MaterialTheme.colorScheme.onErrorContainer
                         )
                     }
                 }
@@ -530,7 +530,7 @@ private fun WeeklyPriceComparisonContent(
                 Card(
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFFE8F5E9))
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
                 ) {
                     Column(
                         modifier = Modifier.padding(10.dp),
@@ -540,7 +540,7 @@ private fun WeeklyPriceComparisonContent(
                             Icon(
                                 Icons.AutoMirrored.Filled.TrendingDown,
                                 contentDescription = null,
-                                tint = Color(0xFF2E7D32),
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(modifier = Modifier.width(3.dp))
@@ -548,14 +548,14 @@ private fun WeeklyPriceComparisonContent(
                                 "Decreased",
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
-                                color = Color(0xFF2E7D32)
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
                             )
                         }
                         Text(
                             text = "$downCount Items",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF1B5E20)
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
                     }
                 }

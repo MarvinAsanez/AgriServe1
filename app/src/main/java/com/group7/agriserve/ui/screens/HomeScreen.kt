@@ -61,6 +61,7 @@ fun HomeScreen(
     onFeedbackClick: () -> Unit = {},
     onSupportClick: () -> Unit = {},
     onAiChatClick: () -> Unit = {},
+    onNotificationsClick: () -> Unit = {},
     newsViewModel: NewsViewModel = viewModel(),
     announcementViewModel: AnnouncementViewModel = viewModel()
 ) {
@@ -78,34 +79,55 @@ fun HomeScreen(
         else -> isSystemInDarkTheme()
     }
 
-    var showNotificationsDialog by remember { mutableStateOf(false) }
     var notificationsList by remember { mutableStateOf<List<Map<String, Any>>>(emptyList()) }
     var unreadNotificationsCount by remember { mutableStateOf(0) }
 
-    LaunchedEffect(candidateIds) {
+    DisposableEffect(candidateIds) {
+        val listeners = mutableListOf<com.google.firebase.firestore.ListenerRegistration>()
+        val mergedNotifications = mutableMapOf<String, Map<String, Any>>()
+        var seededInitial = false
+
         if (candidateIds.isNotEmpty()) {
             val db = FirebaseFirestore.getInstance()
+            val queryFields = listOf("targetUserId", "recipientId", "userId")
             for (cid in candidateIds) {
-                db.collection("notifications")
-                    .whereEqualTo("targetUserId", cid)
-                    .addSnapshotListener { snapshot, _ ->
-                        if (snapshot != null) {
-                            val items = snapshot.documents.mapNotNull { doc ->
-                                doc.data?.plus("id" to doc.id)
-                            }
-                            val previousIds = notificationsList.mapNotNull { it.get("id") as? String }.toSet()
-                            if (previousIds.isNotEmpty()) {
-                                items.filter { (it.get("read") as? Boolean) == false && !previousIds.contains(it.get("id") as? String) }.forEach { newNotif ->
-                                    val title = newNotif.get("title") as? String ?: "DA Update"
-                                    val msg = newNotif.get("message") as? String ?: "You have a new update from AgriServe."
-                                    com.group7.agriserve.util.AgriServeNotificationHelper.showSystemNotification(context, title, msg)
+                for (field in queryFields) {
+                    listeners.add(
+                        db.collection("notifications")
+                            .whereEqualTo(field, cid)
+                            .addSnapshotListener { snapshot, _ ->
+                                if (snapshot != null) {
+                                    val previousIds = mergedNotifications.keys.toSet()
+                                    for (doc in snapshot.documents) {
+                                        val item = (doc.data ?: emptyMap<String, Any>()) + ("id" to doc.id)
+                                        mergedNotifications[doc.id] = item
+                                        if (seededInitial && !previousIds.contains(doc.id) && (item["read"] as? Boolean) != true) {
+                                            val title = item["title"] as? String ?: "DA Update"
+                                            val msg = item["message"] as? String ?: "You have a new update from AgriServe."
+                                            com.group7.agriserve.util.AgriServeNotificationHelper.showSystemNotification(context, title, msg)
+                                        }
+                                    }
+                                    val activeIds = snapshot.documents.map { it.id }.toSet()
+                                    mergedNotifications.entries
+                                        .filter { (_, v) -> v[field]?.toString() == cid && !activeIds.contains(v["id"]?.toString()) }
+                                        .map { it.key }
+                                        .forEach { k -> mergedNotifications.remove(k) }
+
+                                    seededInitial = true
+                                    val sorted = mergedNotifications.values.sortedByDescending {
+                                        (it["timestamp"] as? com.google.firebase.Timestamp)?.seconds
+                                            ?: (it["createdAt"] as? com.google.firebase.Timestamp)?.seconds ?: 0L
+                                    }
+                                    notificationsList = sorted
+                                    unreadNotificationsCount = sorted.count { (it["read"] as? Boolean) != true }
                                 }
                             }
-                            notificationsList = items.sortedByDescending { (it.get("timestamp") as? com.google.firebase.Timestamp)?.seconds ?: 0L }
-                            unreadNotificationsCount = items.count { it.get("read") == false }
-                        }
-                    }
+                    )
+                }
             }
+        }
+        onDispose {
+            listeners.forEach { it.remove() }
         }
     }
 
@@ -180,7 +202,7 @@ fun HomeScreen(
                 // Upper Left: Notification Icon with unread badge
                 Box {
                     IconButton(
-                        onClick = { showNotificationsDialog = true },
+                        onClick = onNotificationsClick,
                         modifier = Modifier
                             .size(42.dp)
                             .background(
@@ -310,7 +332,7 @@ fun HomeScreen(
                             text = emergencyAlert.title,
                             fontWeight = FontWeight.Bold,
                             fontSize = 13.5.sp,
-                            color = Color(0xFF212121),
+                            color = MaterialTheme.colorScheme.onSurface,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -543,139 +565,6 @@ fun HomeScreen(
         }
 
         Spacer(modifier = Modifier.height(32.dp))
-    }
-
-    // Notifications Dialog
-    if (showNotificationsDialog) {
-        AlertDialog(
-            onDismissRequest = { showNotificationsDialog = false },
-            title = {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.Notifications,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = stringResource(R.string.notifications_title),
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                    IconButton(
-                        onClick = { showNotificationsDialog = false },
-                        modifier = Modifier.size(28.dp)
-                    ) {
-                        Icon(Icons.Default.Close, contentDescription = "Close")
-                    }
-                }
-            },
-            text = {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(max = 400.dp)
-                ) {
-                    if (notificationsList.isEmpty()) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 32.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Icon(
-                                    imageVector = Icons.Default.NotificationsNone,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                                    modifier = Modifier.size(48.dp)
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text(
-                                    text = "No notifications yet",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                    } else {
-                        LazyColumn(
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            items(notificationsList) { notif ->
-                                val title = notif.get("title") as? String ?: "DA Advisory"
-                                val msg = notif.get("message") as? String ?: ""
-                                val isRead = notif.get("read") as? Boolean ?: true
-
-                                Surface(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clickable {
-                                            val notifId = notif.get("id") as? String
-                                            if (notifId != null && !isRead) {
-                                                FirebaseFirestore.getInstance()
-                                                    .collection("notifications")
-                                                    .document(notifId)
-                                                    .update("read", true)
-                                            }
-                                        },
-                                    shape = RoundedCornerShape(12.dp),
-                                    color = if (isRead) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f) else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
-                                    border = androidx.compose.foundation.BorderStroke(
-                                        1.dp,
-                                        if (isRead) MaterialTheme.colorScheme.outline.copy(alpha = 0.2f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
-                                    )
-                                ) {
-                                    Row(
-                                        modifier = Modifier.padding(12.dp),
-                                        verticalAlignment = Alignment.Top
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Campaign,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier
-                                                .size(22.dp)
-                                                .padding(top = 2.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(10.dp))
-                                        Column(modifier = Modifier.weight(1f)) {
-                                            Text(
-                                                text = title,
-                                                fontWeight = FontWeight.Bold,
-                                                fontSize = 13.sp,
-                                                color = MaterialTheme.colorScheme.onSurface
-                                            )
-                                            if (msg.isNotBlank()) {
-                                                Spacer(modifier = Modifier.height(2.dp))
-                                                Text(
-                                                    text = msg,
-                                                    fontSize = 12.sp,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { showNotificationsDialog = false }) {
-                    Text("Close", fontWeight = FontWeight.SemiBold)
-                }
-            }
-        )
     }
 
     // Official Municipal Advisory Details Dialog

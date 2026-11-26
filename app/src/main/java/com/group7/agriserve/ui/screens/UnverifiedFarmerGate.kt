@@ -22,12 +22,14 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun UnverifiedFarmerGate(
     onVerifyClick: () -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    title: String = "Resource Access",
+    featureRestrictionMessage: String = "Department of Agriculture material allocations (certified seeds, fertilizers, irrigation water pumps, power machinery) and farm incident / crop insurance reporting require formal identity confirmation to prevent fraudulent submissions and ensure government aid reaches legitimate verified farmers."
 ) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Resource Access") },
+                title = { Text(title) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -73,13 +75,13 @@ fun UnverifiedFarmerGate(
             Spacer(modifier = Modifier.height(8.dp))
 
             Surface(
-                color = Color(0xFFFFF3E0),
+                color = MaterialTheme.colorScheme.tertiaryContainer,
                 shape = RoundedCornerShape(8.dp)
             ) {
                 Text(
-                    text = "Current Status: Unverified Profile",
+                    text = "Current Status: Unverified / Guest Profile",
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                    color = Color(0xFFE65100),
+                    color = MaterialTheme.colorScheme.onTertiaryContainer,
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold
                 )
@@ -101,7 +103,7 @@ fun UnverifiedFarmerGate(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Department of Agriculture material allocations (certified seeds, fertilizers, irrigation water pumps, and power machinery) require formal identity confirmation to prevent fraudulent applications and ensure government aid reaches legitimate farmers.",
+                        text = featureRestrictionMessage,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -135,11 +137,10 @@ fun UnverifiedFarmerGate(
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Spacer(modifier = Modifier.height(6.dp))
-                    Text("• Department of Agriculture news & PhilRice advisories", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
-                    Text("• Live weather forecasts & farm advisories", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
-                    Text("• Regional agricultural market prices", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
-                    Text("• Farmer community discussions", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
-                    Text("• Geotagged incident & pest reporting", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                    Text("• Department of Agriculture news & PhilRice advisories", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("• Live weather forecasts & farm advisories", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("• Regional agricultural market prices", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("• Farmer community discussions", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
 

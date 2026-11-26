@@ -89,9 +89,8 @@ fun SignupScreen(
         "Rice",
         "Corn",
         "Coconut",
-        "High Value Crops",
-        "Abacca",
-        "Others"
+        "Sugarcane",
+        "High Value Crops"
     )
     var selectedCrops by remember { mutableStateOf(setOf("Rice")) }
 
@@ -453,9 +452,9 @@ fun SignupScreen(
                             "Rice" -> "🌾 "
                             "Corn" -> "🌽 "
                             "Coconut" -> "🥥 "
+                            "Sugarcane" -> "🎋 "
                             "High Value Crops" -> "🥬 "
-                            "Abacca" -> "🌿 "
-                            else -> "📦 "
+                            else -> "🥬 "
                         }
 
                         FilterChip(

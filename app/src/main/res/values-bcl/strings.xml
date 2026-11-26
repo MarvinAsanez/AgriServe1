@@ -200,4 +200,24 @@
     <string name="id_front_label">Atubangan kan ID (Litrato asin Detalye)</string>
     <string name="id_back_label">Likod kan ID (Barcode asin Seguridad)</string>
     <string name="camera_landscape">Kamera (Pahigda)</string>
+    <string name="release_slip_title">Opisyal na Supply Release Slip</string>
+    <string name="release_slip_ready">Pinaluwas an Release Slip</string>
+    <string name="view_release_slip">Hilingon an Slip</string>
+    <string name="download_release_slip">I-download an PDF</string>
+    <string name="release_slip_instruction">Ipresentar ining opisyal na release slip kaiba an saimong Valid ID o RSBSA Stub sa Municipal Agriculture Office (MAO) tanganing makua an suplay.</string>
+    <string name="close_btn">Isara</string>
+    <string name="cancel">Kanselahon</string>
+    <string name="mark_all_read">Basahon Gabos</string>
+    <string name="clear_read_notifications">Paraon an Nabasa</string>
+    <string name="unread_only">Dai pa nabasa</string>
+    <string name="no_unread_notifications">Mayong bagong notification</string>
+    <string name="no_notifications_in_category">Mayong notification sa kategoryang ini</string>
+    <string name="notifications_email_sms_subtitle">Ipinapadara man an mga abiso sa saimong nakarehistrong email asin cellphone.</string>
+    <string name="mark_read">Nabasa na</string>
+    <string name="mark_unread">Dai pa nabasa</string>
+    <string name="delete_notification">Paraon</string>
+    <string name="notification_deleted_toast">Napara an notification</string>
+    <string name="all_notifications_read_toast">Minarkahan na nabasa gabos na notification</string>
+    <string name="cleared_read_notifications_toast">Napara gabos na nabasang notification</string>
+    <string name="incident_verified_only_desc">An pag-report nin insidente sa uma asin crop insurance para sana sa mga beripikadong paraoma kan Municipal Agriculture Office (MAO). Kompletoha nguna an saimong RSBSA asin valid ID verification.</string>
 </resources>

@@ -6,6 +6,15 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddCircle
@@ -85,8 +94,9 @@ class MainActivity : AppCompatActivity() {
         enableEdgeToEdge()
         setContent {
             val themeMode by userViewModel.themeMode
+            val fontScale by userViewModel.fontScale
             
-            AgriServeTheme(themeMode = themeMode) {
+            AgriServeTheme(themeMode = themeMode, fontScale = fontScale) {
                 AgriServeApp(userViewModel)
             }
         }
@@ -196,7 +206,11 @@ fun AgriServeApp(userViewModel: UserViewModel) {
 
     Scaffold(
         bottomBar = {
-            if (showBottomBar) {
+            AnimatedVisibility(
+                visible = showBottomBar,
+                enter = slideInVertically(tween(240, easing = FastOutSlowInEasing)) { it } + fadeIn(tween(200)),
+                exit = slideOutVertically(tween(200, easing = FastOutSlowInEasing)) { it } + fadeOut(tween(160))
+            ) {
                 NavigationBar {
                     mainScreens.forEach { screen ->
                         val selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true
@@ -263,7 +277,37 @@ fun AgriServeApp(userViewModel: UserViewModel) {
         NavHost(
             navController = navController,
             startDestination = startDestinationRoute,
-            modifier = Modifier.padding(innerPadding)
+            modifier = Modifier.padding(innerPadding),
+            enterTransition = {
+                val targetRoute = targetState.destination.route
+                val initialRoute = initialState.destination.route
+                val isTabSwitch = mainScreens.any { it.route == targetRoute } && mainScreens.any { it.route == initialRoute }
+                if (isTabSwitch) {
+                    fadeIn(animationSpec = tween(200))
+                } else {
+                    fadeIn(animationSpec = tween(240)) +
+                        slideInHorizontally(animationSpec = tween(280, easing = FastOutSlowInEasing)) { it / 12 }
+                }
+            },
+            exitTransition = {
+                val targetRoute = targetState.destination.route
+                val initialRoute = initialState.destination.route
+                val isTabSwitch = mainScreens.any { it.route == targetRoute } && mainScreens.any { it.route == initialRoute }
+                if (isTabSwitch) {
+                    fadeOut(animationSpec = tween(180))
+                } else {
+                    fadeOut(animationSpec = tween(200)) +
+                        slideOutHorizontally(animationSpec = tween(260, easing = FastOutSlowInEasing)) { -it / 16 }
+                }
+            },
+            popEnterTransition = {
+                fadeIn(animationSpec = tween(240)) +
+                    slideInHorizontally(animationSpec = tween(280, easing = FastOutSlowInEasing)) { -it / 12 }
+            },
+            popExitTransition = {
+                fadeOut(animationSpec = tween(200)) +
+                    slideOutHorizontally(animationSpec = tween(260, easing = FastOutSlowInEasing)) { it / 12 }
+            }
         ) {
             // 1. Entry / Verification Gate Screen (Replaces old Login/Registration)
             composable(Screen.VerificationGate.route) {
@@ -420,7 +464,8 @@ fun AgriServeApp(userViewModel: UserViewModel) {
                             onAllFarmsMapClick = { navController.navigate(Screen.AllFarmsMap.route) },
                             onFeedbackClick = { navController.navigate(Screen.Feedback.route) },
                             onSupportClick = { navController.navigate(Screen.Support.route) },
-                            onAiChatClick = { navController.navigate(Screen.AiChat.route) }
+                            onAiChatClick = { navController.navigate(Screen.AiChat.route) },
+                            onNotificationsClick = { navController.navigate(Screen.Notifications.route) }
                         )
                     }
 
@@ -481,10 +526,25 @@ fun AgriServeApp(userViewModel: UserViewModel) {
                 }
 
                 composable(Screen.Report.route) {
-                    ReportIssueScreen(
-                        onBack = { navController.popBackStack() },
-                        userViewModel = userViewModel
-                    )
+                    if ((farmerStatus == "guest" || !isVerified) && role != "Admin") {
+                        UnverifiedFarmerGate(
+                            onVerifyClick = {
+                                if (farmerStatus == "guest") {
+                                    navController.navigate(Screen.ResubmitCredentials.route)
+                                } else {
+                                    navController.navigate(Screen.ProfileVerification.route)
+                                }
+                            },
+                            onBack = { navController.popBackStack() },
+                            title = stringResource(R.string.report_incident),
+                            featureRestrictionMessage = stringResource(R.string.incident_verified_only_desc)
+                        )
+                    } else {
+                        ReportIssueScreen(
+                            onBack = { navController.popBackStack() },
+                            userViewModel = userViewModel
+                        )
+                    }
                 }
 
                 composable(Screen.Profile.route) {
@@ -568,6 +628,13 @@ fun AgriServeApp(userViewModel: UserViewModel) {
 
                 composable(Screen.Feedback.route) {
                     FeedbackScreen(
+                        userViewModel = userViewModel,
+                        onBack = { navController.popBackStack() }
+                    )
+                }
+
+                composable(Screen.Notifications.route) {
+                    NotificationsScreen(
                         userViewModel = userViewModel,
                         onBack = { navController.popBackStack() }
                     )

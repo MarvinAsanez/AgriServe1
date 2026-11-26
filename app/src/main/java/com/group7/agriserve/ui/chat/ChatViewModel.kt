@@ -1,8 +1,10 @@
 package com.group7.agriserve.ui.chat
 
+import android.content.Context
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import org.json.JSONArray
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.functions.FirebaseFunctions
@@ -56,7 +58,8 @@ data class ChatMessage(
 data class ChatUiState(
     val messages: List<ChatMessage> = emptyList(),
     val isLoading: Boolean = false,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val recentSearches: List<String> = emptyList()
 )
 
 class ChatViewModel(
@@ -109,9 +112,73 @@ class ChatViewModel(
         }
     }
 
-    fun sendMessage(userText: String) {
+    private val PREFS_NAME = "agriserve_ai_history_prefs"
+    private val KEY_RECENT_SEARCHES = "recent_searches_json"
+    private val MAX_RECENT_SEARCHES = 10
+
+    fun loadRecentSearches(context: Context) {
+        try {
+            val prefs = context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            val raw = prefs.getString(KEY_RECENT_SEARCHES, null) ?: return
+            val arr = JSONArray(raw)
+            val list = buildList {
+                for (i in 0 until arr.length()) {
+                    val item = arr.optString(i, "").trim()
+                    if (item.isNotEmpty()) add(item)
+                }
+            }
+            _uiState.update { it.copy(recentSearches = list) }
+        } catch (_: Exception) {
+            // ignore
+        }
+    }
+
+    private fun saveRecentSearch(query: String, context: Context?) {
+        val updated = (listOf(query) + _uiState.value.recentSearches.filterNot { it.equals(query, ignoreCase = true) })
+            .take(MAX_RECENT_SEARCHES)
+        _uiState.update { it.copy(recentSearches = updated) }
+        if (context != null) {
+            try {
+                val arr = JSONArray()
+                updated.forEach { arr.put(it) }
+                context.applicationContext
+                    .getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                    .edit()
+                    .putString(KEY_RECENT_SEARCHES, arr.toString())
+                    .apply()
+            } catch (_: Exception) {
+                // ignore
+            }
+        }
+    }
+
+    fun removeRecentSearch(query: String, context: Context? = null) {
+        val updated = _uiState.value.recentSearches.filterNot { it == query }
+        _uiState.update { it.copy(recentSearches = updated) }
+        if (context != null) {
+            val arr = JSONArray().apply { updated.forEach { put(it) } }
+            context.applicationContext
+                .getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .edit()
+                .putString(KEY_RECENT_SEARCHES, arr.toString())
+                .apply()
+        }
+    }
+
+    fun clearRecentSearches(context: Context? = null) {
+        _uiState.update { it.copy(recentSearches = emptyList()) }
+        context?.applicationContext
+            ?.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            ?.edit()
+            ?.remove(KEY_RECENT_SEARCHES)
+            ?.apply()
+    }
+
+    fun sendMessage(userText: String, context: Context? = null) {
         val trimmed = userText.trim()
         if (trimmed.isEmpty() || _uiState.value.isLoading) return
+
+        saveRecentSearch(trimmed, context)
 
         val userMessage = ChatMessage(
             sender = MessageSender.USER,

@@ -200,4 +200,24 @@
     <string name="id_front_label">Harap ng ID (Larawan at Detalye)</string>
     <string name="id_back_label">Likod ng ID (Barcode at Seguridad)</string>
     <string name="camera_landscape">Kamera (Pahiga)</string>
+    <string name="release_slip_title">Opisyal na Supply Release Slip</string>
+    <string name="release_slip_ready">Inilabas ang Release Slip</string>
+    <string name="view_release_slip">Tingnan ang Slip</string>
+    <string name="download_release_slip">I-download ang PDF</string>
+    <string name="release_slip_instruction">Ipakita ang opisyal na release slip kasama ang iyong Valid ID o RSBSA Stub sa Municipal Agriculture Office (MAO) upang makuha ang tulong.</string>
+    <string name="close_btn">Isara</string>
+    <string name="cancel">Kanselahin</string>
+    <string name="mark_all_read">Basahin Lahat</string>
+    <string name="clear_read_notifications">Burahin ang Nabasa</string>
+    <string name="unread_only">Hindi pa nabasa</string>
+    <string name="no_unread_notifications">Walang bagong notification</string>
+    <string name="no_notifications_in_category">Walang notification sa kategoryang ito</string>
+    <string name="notifications_email_sms_subtitle">Ipinapadala rin ang mga abiso sa iyong nakarehistrong email at cellphone.</string>
+    <string name="mark_read">Nabasa na</string>
+    <string name="mark_unread">Hindi pa nabasa</string>
+    <string name="delete_notification">Burahin</string>
+    <string name="notification_deleted_toast">Nabura ang notification</string>
+    <string name="all_notifications_read_toast">Minarkahang nabasa lahat ng notification</string>
+    <string name="cleared_read_notifications_toast">Nabura lahat ng nabasang notification</string>
+    <string name="incident_verified_only_desc">Ang pag-uulat ng insidente sa bukid at crop insurance ay para lamang sa mga beripikadong magsasaka ng Municipal Agriculture Office (MAO). Mangyaring kumpletuhin muna ang iyong RSBSA at valid ID verification.</string>
 </resources>
