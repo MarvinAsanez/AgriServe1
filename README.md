@@ -2,7 +2,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Platform-Android-3DDC84?style=for-the-badge&logo=android&logoColor=white" alt="Android" />
-  <img src="https://img.shields.io/badge/Version-v2.0.0-2E7D32?style=for-the-badge" alt="Version 2.0.0" />
+  <img src="https://img.shields.io/badge/Version-v2.1.0-2E7D32?style=for-the-badge" alt="Version 2.1.0" />
   <img src="https://img.shields.io/badge/Release-Stable-brightgreen?style=for-the-badge" alt="Release" />
   <img src="https://img.shields.io/badge/License-MIT-blue?style=for-the-badge" alt="License" />
 </p>
@@ -18,14 +18,15 @@
 Download and install the latest signed Android APK directly onto your Android device:
 
 <p align="center">
-  <a href="https://github.com/MarvinAsanez/AgriServe1/releases/latest/download/AgriServe-V2.0.0.apk">
-    <img src="https://img.shields.io/badge/DOWNLOAD_LATEST_APK-AgriServe--V2.0.0.apk-2E7D32?style=for-the-badge&logo=android&logoColor=white" height="50" alt="Download APK" />
+  <a href="https://github.com/MarvinAsanez/AgriServe1/releases/latest/download/AgriServe-V2.1.0.apk">
+    <img src="https://img.shields.io/badge/DOWNLOAD_LATEST_APK-AgriServe--V2.1.0.apk-2E7D32?style=for-the-badge&logo=android&logoColor=white" height="50" alt="Download APK" />
   </a>
 </p>
 
 ### 🔗 Alternative Download Links:
-* **Direct Latest APK (v2.0.0)**: [AgriServe-V2.0.0.apk](https://github.com/MarvinAsanez/AgriServe1/releases/latest/download/AgriServe-V2.0.0.apk) *(~98 MB, signed & ready)*
-* **Release v2.0.0 APK**: [AgriServe-V2.0.0.apk](https://github.com/MarvinAsanez/AgriServe1/releases/download/v2.0.0/AgriServe-V2.0.0.apk)
+* **Direct Latest APK (v2.1.0)**: [AgriServe-V2.1.0.apk](https://github.com/MarvinAsanez/AgriServe1/releases/latest/download/AgriServe-V2.1.0.apk) *(~98 MB, signed & ready)*
+* **Release v2.1.0 APK**: [AgriServe-V2.1.0.apk](https://github.com/MarvinAsanez/AgriServe1/releases/download/v2.1.0/AgriServe-V2.1.0.apk)
+* **Previous Release (v2.0.0)**: [AgriServe-V2.0.0.apk](https://github.com/MarvinAsanez/AgriServe1/releases/download/v2.0.0/AgriServe-V2.0.0.apk)
 * **Previous Release (v1.0.0)**: [AgriServe-v1.0.0.apk](https://github.com/MarvinAsanez/AgriServe1/releases/download/v1.0.0/AgriServe-v1.0.0.apk)
 * **GitHub Releases Page**: [View All Releases & Assets](https://github.com/MarvinAsanez/AgriServe1/releases)
 
