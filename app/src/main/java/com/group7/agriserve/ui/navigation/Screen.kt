@@ -1,0 +1,40 @@
+package com.group7.agriserve.ui.navigation
+
+sealed class Screen(val route: String) {
+    // New Onboarding & Verification Routes
+    object VerificationGate : Screen("verification_gate")
+    object CredentialSubmission : Screen("credential_submission")
+    object ApplicationStatus : Screen("application_status")
+    object GuestDashboard : Screen("guest_dashboard")
+    object ResubmitCredentials : Screen("resubmit_credentials")
+    object VerifiedDashboard : Screen("verified_dashboard")
+    object RealTimeApprovalResult : Screen("real_time_approval_result")
+
+    // Auth & Profile Verification Routes
+    object Login : Screen("login")
+    object ForgotPassword : Screen("forgot_password")
+    object Signup : Screen("signup")
+    object ProfileVerification : Screen("profile_verification")
+    object AccountVerification : Screen("profile_verification")
+    object Verification : Screen("profile_verification")
+
+    // Main App Functionality
+    object Home : Screen("home")
+    object Inventory : Screen("inventory")
+    object Request : Screen("request")
+    object Report : Screen("report")
+    object Profile : Screen("profile")
+    object EditProfile : Screen("edit_profile")
+    object Security : Screen("security")
+    object Support : Screen("support")
+    object Admin : Screen("admin")
+    object Weather : Screen("weather")
+    object Markets : Screen("markets")
+    object Community : Screen("community")
+    object Status : Screen("status")
+    object FarmTagging : Screen("farm_tagging")
+    object AllFarmsMap : Screen("all_farms_map")
+    object Feedback : Screen("feedback")
+    object AiChat : Screen("ai_chat")
+    object Notifications : Screen("notifications")
+}

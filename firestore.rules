@@ -1,0 +1,193 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions for authentication and role evaluation
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && (
+        request.auth.token.role == 'Admin' ||
+        request.auth.token.role == 'admin' ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['Admin', 'admin']) ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    // -------------------------------------------------------------
+    // 1. DA STAFF ADMINS
+    // -------------------------------------------------------------
+    match /admins/{adminId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() || (isAuthenticated() && request.auth.uid == adminId);
+    }
+
+    // -------------------------------------------------------------
+    // 2. INVENTORY & DA RESOURCES (Supports 'inventory' and 'inventory_items')
+    // -------------------------------------------------------------
+    match /inventory/{itemId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /inventory_items/{itemId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAdmin();
+    }
+
+    // -------------------------------------------------------------
+    // 3. SUPPLY & ASSISTANCE REQUESTS (Supports 'requests' and 'supply_requests')
+    // -------------------------------------------------------------
+    match /requests/{requestId} {
+      allow read: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid || isAdmin()
+      );
+      allow create: if isAuthenticated() && (
+        request.resource.data.userId == request.auth.uid || isAdmin()
+      );
+      allow update: if isAuthenticated() && (
+        (resource.data.userId == request.auth.uid && resource.data.status in ['Pending', 'pending']) ||
+        isAdmin()
+      );
+      allow delete: if isAdmin();
+    }
+
+    match /supply_requests/{requestId} {
+      allow read: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid || isAdmin()
+      );
+      allow create: if isAuthenticated() && (
+        request.resource.data.userId == request.auth.uid || isAdmin()
+      );
+      allow update: if isAuthenticated() && (
+        (resource.data.userId == request.auth.uid && resource.data.status in ['Pending', 'pending']) ||
+        isAdmin()
+      );
+      allow delete: if isAdmin();
+    }
+
+    // -------------------------------------------------------------
+    // 4. SUPPORT TICKETS (Escalations & AI Customer Service Tickets)
+    // -------------------------------------------------------------
+    match /support_tickets/{ticketId} {
+      allow read: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid || isAdmin()
+      );
+      allow create: if isAuthenticated() && (
+        request.resource.data.userId == request.auth.uid || isAdmin()
+      );
+      allow update, delete: if isAdmin();
+    }
+
+    // -------------------------------------------------------------
+    // 5. USERS, FARMERS, VERIFICATIONS & APPLICATIONS
+    // -------------------------------------------------------------
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+      allow update: if isOwner(userId) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /farmers/{farmerId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isOwner(farmerId) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /verifications/{verificationId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isOwner(verificationId) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /farmer_applications/{appId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isOwner(appId) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // -------------------------------------------------------------
+    // 6. FARMS, REPORTS, DISPUTES, FEEDBACK & NOTIFICATIONS
+    // -------------------------------------------------------------
+    match /farms/{farmId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
+    match /reports/{reportId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
+    match /farm_reports/{reportId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
+    match /farm_disputes/{disputeId} {
+      allow read: if isAuthenticated() && (
+        resource.data.reporterId == request.auth.uid ||
+        resource.data.respondentId == request.auth.uid ||
+        resource.data.farmUserId == request.auth.uid ||
+        isAdmin()
+      );
+      allow write: if isAuthenticated();
+    }
+
+    match /disputes/{disputeId} {
+      allow read: if isAuthenticated() && (
+        resource.data.reporterId == request.auth.uid ||
+        resource.data.respondentId == request.auth.uid ||
+        resource.data.farmUserId == request.auth.uid ||
+        isAdmin()
+      );
+      allow write: if isAuthenticated();
+    }
+
+    match /notifications/{notificationId} {
+      allow read: if isAuthenticated() && (
+        resource.data.recipientId == request.auth.uid ||
+        resource.data.targetUserId == request.auth.uid ||
+        resource.data.userId == request.auth.uid ||
+        resource.data.recipientId == 'all' ||
+        isAdmin()
+      );
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() && (
+        resource.data.recipientId == request.auth.uid ||
+        resource.data.targetUserId == request.auth.uid ||
+        resource.data.userId == request.auth.uid ||
+        isAdmin()
+      );
+      allow delete: if isAdmin();
+    }
+
+    match /feedback/{feedbackId} {
+      allow read: if isAdmin();
+      allow create: if isAuthenticated();
+      allow update, delete: if isAdmin();
+    }
+
+    // -------------------------------------------------------------
+    // 12. MUNICIPAL ANNOUNCEMENTS & CALAMITY BROADCASTS
+    // -------------------------------------------------------------
+    match /announcements/{announcementId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Default deny all other collections
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -1,0 +1,228 @@
+<resources>
+    <string name="app_name">AgriServe</string>
+    <string name="login">Login</string>
+    <string name="signup">Signup</string>
+    <string name="create_account">Create Account</string>
+    <string name="email_address">Email Address</string>
+    <string name="password">Password</string>
+    <string name="app_slogan">Empowering Local Farmers</string>
+    <string name="app_logo_desc">AgriServe Logo</string>
+
+    <!-- Navigation -->
+    <string name="home">Home</string>
+    <string name="inventory">DA Resources</string>
+    <string name="request">Request</string>
+    <string name="report">Report</string>
+    <string name="profile">Profile</string>
+
+    <!-- Signup Screen -->
+    <string name="full_name">Full Name</string>
+    <string name="confirm_password">Confirm Password</string>
+    <string name="already_have_account">Already have an account? Login</string>
+
+    <!-- Home Screen -->
+    <string name="welcome_back">Welcome back, Farmer!</string>
+    <string name="welcome_to_agriserve">Welcome to AgriServe</string>
+    <string name="latest_news">Latest Agricultural News</string>
+    <string name="quick_actions">Quick Actions</string>
+    <string name="da_updates">DA Latest Updates</string>
+    <string name="services_monitoring">Services &amp; Monitoring</string>
+    <string name="inventory_card">DA Resources</string>
+    <string name="my_status">Requests Status</string>
+    <string name="markets">Markets</string>
+    <string name="weather">Weather</string>
+    <string name="farmer_community">Farmer Community</string>
+    <string name="farm_tagging">Farm Tagging</string>
+    <string name="view_all_farms">Farms Map</string>
+    <string name="refresh_news">Refresh News</string>
+    <string name="news_error">Could not load latest news from DA.gov.ph</string>
+
+    <!-- Profile Screen -->
+    <string name="farmer_profile">Farmer Profile</string>
+    <string name="verified_farmer">Verified Farmer</string>
+    <string name="verification_pending">Verification Pending</string>
+    <string name="account_details">Account Details</string>
+    <string name="verification_identity">Verification &amp; Identity</string>
+    <string name="location_details">Location Details</string>
+    <string name="account_settings">Account Settings</string>
+    <string name="logout_account">LOGOUT ACCOUNT</string>
+    <string name="language">Language</string>
+    <string name="select_language">Select Language</string>
+    <string name="english">English</string>
+    <string name="tagalog">Tagalog</string>
+    <string name="bikol">Bikol</string>
+    <string name="update_profile_info">Update Profile Information</string>
+    <string name="security_password">Security &amp; Password</string>
+    <string name="help_support">Help &amp; Support</string>
+    <string name="tag_my_farm">Tag My Farm Location</string>
+    <string name="complete_verification">Complete Verification</string>
+    <string name="theme">Theme</string>
+    <string name="select_theme">Select Theme</string>
+    <string name="light_mode">Light Mode</string>
+    <string name="dark_mode">Dark Mode</string>
+    <string name="system_default">System Default</string>
+
+    <!-- Farm Tagging Screen -->
+    <string name="farm_tagging_details">Farm Tagging &amp; Details</string>
+    <string name="save">SAVE</string>
+    <string name="exact_location_tagged">Exact location tagged!</string>
+    <string name="location_error_gps">Could not get location. Is GPS enabled?</string>
+    <string name="error_getting_location">Error getting location</string>
+    <string name="enter_farm_name">Please enter a farm name</string>
+    <string name="farm_save_success">Farm details saved successfully!</string>
+    <string name="farm_save_failed">Failed to save: %1$s</string>
+    <string name="get_exact_location">Get Exact Location</string>
+    <string name="geotag_label">Geotag: %1$s</string>
+    <string name="farm_details_title">Farm Details</string>
+    <string name="geotagged">Geotagged</string>
+    <string name="farm_name_label">Farm Name</string>
+    <string name="farmer_owner_label">Farmer/Owner Name</string>
+    <string name="zone_barangay_label">Zone / Barangay</string>
+    <string name="zone_placeholder">e.g. Zone 1 / Barangay San Jose</string>
+    <string name="farm_address_label">Farm Address (Detected)</string>
+    <string name="size_ha_label">Size (Ha)</string>
+    <string name="primary_crop_label">Primary Crop</string>
+    <string name="public_visibility">Public Visibility</string>
+    <string name="private_visibility">Private Visibility</string>
+    <string name="public_desc">Your farm is visible to other farmers.</string>
+    <string name="private_desc">Your farm is hidden from other farmers.</string>
+    <string name="update_geotag_btn">Update Exact Geotag Location</string>
+    <string name="farm_photos">Farm Photos</string>
+    <string name="add_photo">Add Photo</string>
+    <string name="select_image_source">Select Image Source</string>
+    <string name="image_source_desc">Choose how you want to add a photo of your farm.</string>
+    <string name="gallery">Gallery</string>
+    <string name="camera">Camera</string>
+    <string name="close">Close</string>
+    <string name="step_map_pin">1. Map Pin &amp; GPS</string>
+    <string name="step_farm_details">2. Farm Details</string>
+    <string name="proceed_to_details">Next: Farm Details</string>
+    <string name="back_to_map">Back to Map</string>
+    <string name="save_farm_geotag">Save Farm Geotag</string>
+    <string name="tap_map_hint">Tap map or use GPS to pin your farm</string>
+    <string name="location_pinned_title">Pinned Farm Location</string>
+    <string name="no_location_pinned">No location pinned yet</string>
+    <string name="tap_to_place_pin">Tap on the map or press the GPS button below to set your farm\'s exact geotag location.</string>
+
+    <!-- Report Screen -->
+    <string name="report_incident">Report Incident</string>
+    <string name="incident_evidence">Incident Evidence</string>
+    <string name="contact_number">Contact Number</string>
+    <string name="describe_issue">Describe the Issue / Pest Info</string>
+    <string name="submit_geotagged_report">SUBMIT GEOTAGGED REPORT</string>
+    <string name="previous_reports">Previous Reports</string>
+    <string name="submitting">Submitting...</string>
+    <string name="report_success">Report Submitted Successfully</string>
+
+    <!-- Request Screen -->
+    <string name="request_resource">Request Resource</string>
+    <string name="application_form">Application Form</string>
+    <string name="select_resource">Select Available Resource from DA</string>
+    <string name="quantity">Qty</string>
+    <string name="farm_size">Farm Size</string>
+    <string name="description">Description</string>
+    <string name="farm_evidence">Farm Evidence (Photo Required)</string>
+    <string name="submit_application">SUBMIT APPLICATION</string>
+
+    <!-- Inventory Screen -->
+    <string name="available_resources">Available Resources</string>
+    <string name="no_resources_available">No resources available at the moment.</string>
+    <string name="tap_to_request">Tap to request this item</string>
+    <string name="in_stock">In Stock</string>
+    <string name="out_of_stock">Out of Stock</string>
+    <string name="available_qty_text">%1$s • %2$d %3$s available</string>
+    <string name="back">Back</string>
+
+    <!-- Feedback & Evaluation -->
+    <string name="feedback_evaluation">Feedback &amp; Evaluation</string>
+    <string name="feedback_slogan">Technology Acceptance Model (TAM)</string>
+    <string name="rate_system">Rate AgriServe Experience</string>
+    <string name="pu_title">Perceived Usefulness (PU)</string>
+    <string name="peou_title">Perceived Ease of Use (PEOU)</string>
+    <string name="eff_title">System Efficiency (EFF)</string>
+    <string name="rel_title">Reliability &amp; Security (REL)</string>
+    <string name="submit_evaluation">SUBMIT EVALUATION TO DA</string>
+    <string name="da_clearance">Official DA Issue Clearance</string>
+<!-- Extra Dynamic Strings -->
+    <string name="ai_support_agent">AI Support Agent</string>
+    <string name="unified_farms_map">Unified Farms Map</string>
+    <string name="notifications_title">Notifications</string>
+    <string name="emergency_calamity_alert">EMERGENCY CALAMITY ALERT</string>
+    <string name="emergency_precaution_hint">Tap to read emergency farm precautions &amp; hotlines</string>
+    <string name="da_advisories_updates">DA Advisories &amp; Updates</string>
+    <string name="close_advisory">Close Advisory</string>
+
+    <!-- Facebook Login Credentials -->
+    <string name="facebook_app_id">1676034210800919</string>
+    <string name="facebook_client_token">108b82c96f065930e0fc26316a1843d5</string>
+    <string name="fb_login_protocol_scheme">fb1676034210800919</string>
+
+    <!-- Request Assistant Feature -->
+    <string name="request_assistant_title">DA Request Assistant</string>
+    <string name="request_assistant_subtitle">Smart crop recommendations &amp; DA quota calculator</string>
+    <string name="request_assistant_banner">Need help choosing supplies? Open DA Request Assistant to calculate recommended seeds and fertilizers for your land.</string>
+    <string name="open_assistant">Open Assistant</string>
+    <string name="assistant_calculate">Calculate DA Allocation</string>
+    <string name="assistant_autofill">Apply to Request Form</string>
+    <string name="assistant_applied_toast">Request form filled with DA recommendations!</string>
+
+    <!-- RSBSA Guide Feature -->
+    <string name="not_rsbsa_enrolled_title">Not an RSBSA Enrolled Farmer?</string>
+    <string name="not_rsbsa_enrolled_subtitle">Department of Agriculture Official Guide</string>
+    <string name="not_rsbsa_enrolled_desc">Don\'t have an RSBSA number yet? Learn how to register with the DA, view required documents, download official forms, and follow step-by-step submission instructions.</string>
+    <string name="view_rsbsa_guide">View RSBSA Enrollment Guide</string>
+    <string name="rsbsa_guide_title">DA RSBSA Registration Guide</string>
+    <string name="rsbsa_tab_overview">Overview</string>
+    <string name="rsbsa_tab_requirements">Requirements</string>
+    <string name="rsbsa_tab_steps">How to Register</string>
+    <string name="rsbsa_tab_forms">Forms &amp; Links</string>
+    <string name="rsbsa_download_form">Download Official RSBSA Form (PDF)</string>
+    <string name="rsbsa_check_status_online">Check Status Online (DA Finder)</string>
+    <string name="rsbsa_visit_da_portal">Visit Official DA RSBSA Portal</string>
+    <string name="dont_have_account_signup">DON\'T HAVE AN ACCOUNT? SIGN UP HERE!</string>
+
+    <!-- Login & Auth Humanized Strings -->
+    <string name="forgot_password">Forgot Password?</string>
+    <string name="login_upper">LOGIN</string>
+    <string name="or_continue_with">OR CONTINUE WITH</string>
+    <string name="continue_with_google">Continue with Google</string>
+    <string name="continue_with_facebook">Continue with Facebook</string>
+    <string name="farmer_sign_up_title">Farmer Sign Up</string>
+    <string name="signup_subtitle">Create your AgriServe account to get started. You can complete your profile verification after logging in.</string>
+    <string name="mobile_phone_label">Mobile Number (e.g. 09171234567)</string>
+    <string name="farmer_type_label">Type of Farmer</string>
+    <string name="crops_planted_label">Crops Planted</string>
+    <string name="create_farmer_account">CREATE ACCOUNT</string>
+    <string name="forgot_password_title">Reset Password</string>
+    <string name="send_otp_btn">SEND VERIFICATION CODE</string>
+    <string name="verify_reset_btn">VERIFY &amp; RESET PASSWORD</string>
+    <string name="status_aid_title">Status &amp; Agricultural Aid</string>
+    <string name="requests_tab">Requests</string>
+    <string name="incidents_tab">Incidents</string>
+    <string name="edit_profile_title">Edit Profile</string>
+    <string name="save_profile_changes">SAVE PROFILE CHANGES</string>
+    <string name="valid_id_back_to_back">Valid Government ID (Back-to-Back)</string>
+    <string name="id_front_label">ID Front (Portrait &amp; Details)</string>
+    <string name="id_back_label">ID Back (Barcode &amp; Security Text)</string>
+    <string name="camera_landscape">Camera (Landscape)</string>
+    <string name="release_slip_title">Official Supply Release Slip</string>
+    <string name="release_slip_ready">Release Slip Released</string>
+    <string name="view_release_slip">View Slip</string>
+    <string name="download_release_slip">Download PDF</string>
+    <string name="release_slip_instruction">Present this official release slip with your Valid ID or RSBSA Stub at the Municipal Agriculture Office (MAO) to claim your allocation.</string>
+    <string name="close_btn">Close</string>
+    <string name="cancel">Cancel</string>
+    <string name="mark_all_read">Mark All Read</string>
+    <string name="clear_read_notifications">Clear Read Notifications</string>
+    <string name="unread_only">Unread</string>
+    <string name="no_unread_notifications">No unread notifications</string>
+    <string name="no_notifications_in_category">No notifications in this category</string>
+    <string name="notifications_email_sms_subtitle">Updates are also sent to your registered email &amp; mobile number.</string>
+    <string name="mark_read">Mark Read</string>
+    <string name="mark_unread">Mark Unread</string>
+    <string name="delete_notification">Delete</string>
+    <string name="notification_deleted_toast">Notification deleted</string>
+    <string name="all_notifications_read_toast">All notifications marked as read</string>
+    <string name="cleared_read_notifications_toast">Cleared all read notifications</string>
+    <string name="incident_verified_only_desc">Geotagged farm incident and crop insurance reporting is reserved for verified farmers registered with the Municipal Agriculture Office (MAO). Please complete your RSBSA &amp; valid ID verification first.</string>
+</resources>
